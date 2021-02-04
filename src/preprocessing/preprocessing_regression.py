@@ -16,7 +16,6 @@ class Preprocessing:
                                  "BS",
                                  "CALI",
                                  "DEN",
-                                 "DENC",
                                  "GR",
                                  "NEU",
                                  "RMED"] # well_name needed for per well scaling of features
@@ -35,6 +34,11 @@ class Preprocessing:
         assert all([col in cols_in_df for col in self.list_of_variables]), \
             "One/more of the selected features are not in the dataset"
         return df[self.list_of_variables]
+
+    def clean_rows_target(self, df):
+        df.dropna(subset=[self.target_variable], inplace=True)
+        df.drop(df[(df['BADACS'] == 1) | (df['BADACS'].isnull())].index, axis=0, inplace=True)
+        return df
 
     def scale_features_wellwise(self, df):
         new_df = df.copy(deep=True)
@@ -100,6 +104,8 @@ class Preprocessing:
     def preprocessing_main(self):
         data = self.load_data()
         print('Dimensions of original data: {}'.format(data.shape))
+        data = self.clean_rows_target(data)
+        print('Dimension of data cleaned for bad/missing ACS: {}'.format(data.shape))
         data = self.feature_selection(data)
         data = self.mean_imputer(data)
         added_cols = []
