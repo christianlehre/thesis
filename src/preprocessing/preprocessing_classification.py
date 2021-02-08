@@ -35,14 +35,14 @@ class Preprocessing:
 
     def scale_features_wellwise(self, df): #scale features per well, not per dataset
         new_df = df.copy(deep=True)
-        new_df.drop(['WELL'], axis=1, inplace=True)  # categorical, do not scale
-        new_df.drop([self.target_variable], axis=1, inplace=True)  # categorical target, do not scale
+        new_df.drop(['WELL', "DEPTH_MD", self.target_variable], axis=1, inplace=True)
         scaler = StandardScaler()
         wells = df['WELL'].unique()
         for well in wells:
             new_df[df['WELL'] == well] = scaler.fit_transform(new_df[df['WELL'] == well])
 
-        new_df['WELL'] = df['WELL'] # not needed, only for validating the scaling
+        new_df['WELL'] = df['WELL']
+        new_df["DEPTH_MD"] = df["DEPTH_MD"]
         new_df[self.target_variable] = df[self.target_variable]
         return new_df
 
