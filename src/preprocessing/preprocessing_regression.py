@@ -42,13 +42,14 @@ class Preprocessing:
 
     def scale_features_wellwise(self, df):
         new_df = df.copy(deep=True)
-        new_df.drop(['well_name'], axis=1, inplace=True)
+        new_df.drop(["well_name", "DEPTH"], axis=1, inplace=True)
         scaler = StandardScaler()
         wells = df['well_name'].unique()
         for well in wells:
             new_df[df['well_name'] == well] = scaler.fit_transform(new_df[df['well_name'] == well])
 
-        new_df['well_name'] = df['well_name'] # just for validating the scaling, well_name not used in modelling
+        new_df["DEPTH"] = df["DEPTH"]
+        new_df['well_name'] = df['well_name'] # just for validating the scaling and splitting data further down the pipeline
         return new_df
 
     def validate_scaling(self, df):
