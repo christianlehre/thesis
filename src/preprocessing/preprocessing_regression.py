@@ -100,7 +100,7 @@ class Preprocessing:
         return df, window_cols
 
     def save_dataset(self, df):
-        df.to_csv(self.path_to_preprocessed_data, sep=";")
+        df.to_csv(self.path_to_preprocessed_data, sep=";", index=False)
 
     def preprocessing_main(self):
         data = self.load_data()
