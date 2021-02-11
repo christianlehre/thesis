@@ -21,6 +21,7 @@ class Preprocessing:
                                  "RMED"] # well_name needed for per well scaling of features
         self.numerical_variables = [col for col in self.list_of_features if col != "well_name"]
         self.list_of_variables = [self.target_variable] + self.list_of_features
+        self.columns_to_engineer = [col for col in self.list_of_features if col not in ["well_name", "DEPTH", self.target_variable]]
         self.add_windows = True
         self.add_gradients = True
         self.window = 4
@@ -111,11 +112,11 @@ class Preprocessing:
         data = self.mean_imputer(data)
         added_cols = []
         if self.add_gradients:
-            data, gradient_cols = self.feature_engineering_add_gradients(data, columns=self.numerical_variables)
+            data, gradient_cols = self.feature_engineering_add_gradients(data, columns=self.columns_to_engineer)
             added_cols += gradient_cols
 
         if self.add_windows:
-            data, window_cols = self.feature_engineering_add_windows(data, columns=self.numerical_variables)
+            data, window_cols = self.feature_engineering_add_windows(data, columns=self.columns_to_engineer)
             added_cols += window_cols
 
         added_plus_selected = added_cols + self.list_of_variables
