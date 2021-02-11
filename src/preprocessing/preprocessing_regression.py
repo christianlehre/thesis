@@ -110,6 +110,7 @@ class Preprocessing:
         print('Dimension of data cleaned for bad/missing ACS: {}'.format(data.shape))
         data = self.feature_selection(data)
         data = self.mean_imputer(data)
+        data = self.scale_features_wellwise(data)
         added_cols = []
         if self.add_gradients:
             data, gradient_cols = self.feature_engineering_add_gradients(data, columns=self.columns_to_engineer)
@@ -122,7 +123,6 @@ class Preprocessing:
         added_plus_selected = added_cols + self.list_of_variables
         assert all([col in added_plus_selected for col in data.columns.values]), \
             "Variables not properly added to dataset"
-        data = self.scale_features_wellwise(data)
         print('Dimensions of preprocessed data: {} '.format(data.shape))
         return data
 
