@@ -22,6 +22,7 @@ class Preprocessing:
                                  "DTC"] #TODO: check if other features should be used
         self.numerical_variables = [var for var in self.list_of_features if var != 'WELL']
         self.list_of_variables = [self.target_variable] + self.list_of_features
+        self.columns_to_engineer = [col for col in self.list_of_features if col not in ["WELL", "DEPTH_MD", self.target_variable]]
         self.add_windows = True
         self.add_gradients = True
         self.window = 4
@@ -114,20 +115,22 @@ class Preprocessing:
         return df
 
     def save_dataset(self, df):
-        df.to_csv(self.path_to_preprocessed_dataset, sep=";")
+        df.to_csv(self.path_to_preprocessed_dataset, sep=";", index=False)
 
     def preprocessing_main(self):
         data = self.load_dataset()
+        print('Dimensions of original data: {}'.format(data.shape))
         data = self.feature_selection(data)
         data = self.mean_imputer(data)
         data = self.scale_features_wellwise(data)
         if self.add_gradients: # Do this before or after scaling?
-            data, gradient_cols = self.feature_engineering_add_gradients(data, columns=self.numerical_variables)
+            data, gradient_cols = self.feature_engineering_add_gradients(data, columns=self.columns_to_engineer)
 
         if self.add_windows: # Do this before/after scaling?
-            data, window_cols = self.feature_engineering_add_windows(data, columns=self.numerical_variables)
+            data, window_cols = self.feature_engineering_add_windows(data, columns=self.columns_to_engineer)
 
         data = self.convert_target(data)
+        print('Dimensions of preprocessed data: {} '.format(data.shape))
         return data
 
 
