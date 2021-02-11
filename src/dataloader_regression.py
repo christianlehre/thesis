@@ -82,12 +82,14 @@ class Dataloader:
     def training_loader(self):
         return torch.utils.data.DataLoader(dataset=self.training_set,
                                            batch_size=self.batch_size,
-                                           shuffle=True)
+                                           shuffle=True,
+                                           drop_last=True)
 
     def test_loader(self):
         return torch.utils.data.DataLoader(dataset=self.test_set,
                                            batch_size=self.batch_size,
-                                           shuffle=False)
+                                           shuffle=False,
+                                           drop_last=True)
 
     def unpack_full_test_set(self):
         return torch.utils.data.DataLoader(dataset=self.test_set,
@@ -106,4 +108,20 @@ if __name__ == "__main__":
     test_size = 0.25
     train_test_splitter = Train_test_split(path_to_preprocessed_data=path_to_preprocessed_data, test_size=test_size)
     training_set, test_set = train_test_splitter.train_test_split()
+
+    batch_size = 50
+    dataloader = Dataloader(training_set=training_set, test_set=test_set, batch_size=batch_size)
+    training_loader = dataloader.training_loader()
+    test_loader = dataloader.test_loader()
+
+    # simple test to ensure that the dataloader iterates over batches specified by the batch size
+    for x_train, y_train in training_loader:
+        assert x_train.shape[0] == batch_size, "dataloader does not work as intended"
+        assert y_train.shape[0] == batch_size, "dataloader does not work as intended"
+        assert y_train.shape[1] == 1, "multiple values for scalar target"
+
+    for x_test, y_test in test_loader:
+        assert x_test.shape[0] == batch_size, "dataloder does not work as intended"
+        assert y_test.shape[0] == batch_size, "dataloader does not work as intended"
+        assert y_train.shape[1] == 1, "multiple values for scalar target"
 
