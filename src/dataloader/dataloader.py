@@ -42,7 +42,7 @@ class Dataloader:
         return torch.utils.data.DataLoader(dataset=self.validation_set,
                                            batch_size=self.batch_size,
                                            shuffle=True,
-                                           droplast=True)
+                                           drop_last=True)
 
     def test_loader(self):
         return torch.utils.data.DataLoader(dataset=self.test_set,
