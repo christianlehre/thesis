@@ -89,6 +89,7 @@ class Train_test_split:
     def torch_dataset_train_test_val(self, df_train, df_val,  df_test):
         variables = df_train.columns.values
         explanatory_variables = [var for var in variables if var not in [self.target_variable, self.well_column]]
+        setattr(Train_test_split, "explanatory_variables", explanatory_variables)
 
         y_train, y_val, y_test = df_train[self.target_variable], df_val[self.target_variable], df_test[self.target_variable]
         y_train = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
