@@ -81,7 +81,7 @@ class Train_test_split:
     def train_test_val_split_df(self, df, train_wells, test_wells):
         df_test = df.loc[df[self.well_column].isin(test_wells)]
         df_train_full = df.loc[df[self.well_column].isin(train_wells)]
-        df_train, df_val = train_test_split(df_train_full, test_size=self.validation_size)
+        df_train, df_val = train_test_split(df_train_full, test_size=self.validation_size, random_state=42)
         wells_in_test_df = list(set(df_test[self.well_column]))
         assert all([well in test_wells for well in wells_in_test_df]), "train/test split is incorrect in terms of wells"
         return df_train_full, df_train, df_val, df_test, test_wells
