@@ -234,8 +234,8 @@ class RegressionModel(nn.Module):
             y_test = test_well_data["ACS"]
 
             axs[ic].set_ylim(depths.values[-1], depths.values[0])
-            axs[ic].plot(y_predictions, depths)
-            axs[ic].plot(y_test, depths)
+            axs[ic].plot(y_predictions, depths, ".")
+            axs[ic].plot(y_test, depths, ".")
             axs[ic].set_title(well)
             axs[ic].set_xlabel("ACS")
 
