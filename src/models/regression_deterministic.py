@@ -12,6 +12,12 @@ from src.dataloader.dataloader import Dataloader
 
 
 def unpack_dataset_shuffle(dataset):
+    """
+    Unpack a torch dataset into vector of target variable and design matrix
+
+    :param dataset: torch dataset
+    :return: tuple (X, y) of the design matrix X and target variable y
+    """
     loader = torch.utils.data.DataLoader(dataset=dataset,
                                        batch_size=len(dataset),
                                        shuffle=True)
@@ -22,6 +28,14 @@ def unpack_dataset_shuffle(dataset):
 
 
 def create_torch_dataset(df, target, predictors):
+    """
+    Create a torch dataset based on a dataframe, target variable and predictors
+
+    :param df: pandas dataframe containing the dataset
+    :param target: target variable (string)
+    :param predictors: explanatory variables/predictors (list of strings)
+    :return: torch dataset
+    """
     y = df[target]
     y = torch.tensor(y.values, dtype=torch.float32).view(-1, 1)
     x = df[predictors]
