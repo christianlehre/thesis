@@ -291,7 +291,7 @@ if __name__ == "__main__":
     validation_loader = dataloader.validation_loader()
     test_loader = dataloader.test_loader()
 
-    train = True
+    train = False
     grid_search = False
 
     if train:
@@ -374,7 +374,7 @@ if __name__ == "__main__":
     else:
         model.load_state_dict(torch.load("./data/models/regression/regression_deterministic.pt"))
         model.eval()
-        mse, mae, mape = model.evaluate_performance(test_loader_full)
+        mse, mae, mape = model.evaluate_performance(test_loader)
         print("Performance on full test set: ")
         print("MSE: {:.3f}".format(mse))
         print("MAE: {:.3f}".format(mae))
