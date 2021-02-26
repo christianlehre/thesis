@@ -2,8 +2,19 @@ import pandas as pd
 import random
 import os
 import torch
-from sklearn.model_selection import train_test_split
+
 from src.dataloader.dataloader import Dataloader
+
+
+def create_torch_dataset(df, target, predictors):
+    y = df[target]
+    y = torch.tensor(y.values, dtype=torch.float32).view(-1, 1)
+    x = df[predictors]
+    x = torch.tensors(x.values, dtype=torch.float32).view(-1, 1)
+
+    dataset = torch.utils.data.TensorDataset(x, y)
+    return dataset
+
 
 class Train_test_split:
     """
@@ -19,26 +30,6 @@ class Train_test_split:
         - validation_size (float): fraction of samples in the training set used for validation of the model
         - well_column (string): specifying the column containing wells
         - target_variable (string): specifying the target variable in the dataset
-
-    Methods:
-        - load_preprocessed_data: returns pandas dataframe of the preprocessed dataset
-        - list_of_dataframes_wellwise: returns list of dataframes by wells
-            parameters:
-                pandas dataframe containing the dataset
-        - shuffle_wells_return_df: returns pandas dataframe shuffled by wells
-            parameters:
-                list of dataframes by wells
-        - split_wells: returns a triplet of wells, training wells and test wells (lists)
-            parameters: pandas dataframe containing the shuffled dataset by wells
-        -  train_test_val_split_df: returns dataframes of the full training set, training set excluding validation set,
-                    validation set, test set, and a list of test wells
-            parameters:
-                pandas dataframe, training wells and test wells (lists)
-        - torch_dataset_train_test_val: returns torch datasets for training_set, validation_set, test_set
-            parameters:
-                pandas dataframes for the training, validation and test set
-        - train_test_val_split: main function for the class, no parameters.
-            returns: torch datasets for the full training set, training set, validation set and test set
     """
     def __init__(self, path_to_preprocessed_data, test_size):
         self.path_to_preprocessed_data = path_to_preprocessed_data
@@ -48,6 +39,11 @@ class Train_test_split:
         self.target_variable = "ACS"
 
     def load_preprocessed_data(self):
+        """
+        Loads and return the preprocessed dataset
+
+        :return: pandas dataframe containing the preprocessed regression dataset
+        """
         data = pd.read_csv(self.path_to_preprocessed_data, sep=";")
         N = len(data.index)
         N_wells = len(list(set(data[self.well_column])))
@@ -56,6 +52,12 @@ class Train_test_split:
         return data
 
     def list_of_dataframes_wellwise(self, df):
+        """
+        create a list of pandas dataframes based on wells
+
+        :param df: pandas dataframe containing the preprocessed dataset
+        :return: list of dataframes for each well in the dataset
+        """
         wells = list(set(df[self.well_column]))
         list_of_dataframes = []
         for well in wells:
@@ -66,55 +68,118 @@ class Train_test_split:
         return list_of_dataframes
 
     def shuffle_wells_return_df(self, list_of_wells):
-        random.seed(69)
-        random.shuffle(list_of_wells)
+        """
+        Randomly shuffle the list of dataframes and concatenate the shuffled list
+
+        :param list_of_wells: list of dataframes for each well in the dataset
+        :return: dataframe containing all wells, randomly shuffled
+        """
+        random.Random(42).shuffle(list_of_wells)
         shuffled_df = pd.concat(list_of_wells)
         return shuffled_df
 
     def split_wells(self, df):
-        random.seed(69)
-        wells = list(set(df[self.well_column]))
-        test_wells = random.sample(wells, int(self.test_size*self.N_wells))
-        training_wells = [well for well in wells if well not in test_wells]
-        return wells, training_wells, test_wells
+        """
+        Randomly select a fraction of the wells for training and testing.
+        Randomly select a fraction of the training wells for validation
 
-    def train_test_val_split_df(self, df, train_wells, test_wells):
+        :param df: pandas dataframe of the dataset (shuffled by wells)
+        :return: list of wells, training wells, validation wells and test wells
+        """
+        wells = list(set(df[self.well_column]))
+        test_wells = random.Random(42).sample(wells, int(self.test_size*self.N_wells))
+        training_wells = [well for well in wells if well not in test_wells]
+        validation_wells = random.Random(42).sample(training_wells, int(self.validation_size*len(training_wells)))
+        training_wells = [well for well in training_wells if well not in validation_wells]
+
+        return wells, training_wells, validation_wells, test_wells
+
+    def train_val_test_split_df(self, df, train_wells, val_wells, test_wells):
+        """
+        Split dataset into training, validation and test set
+
+        :param df: pandas dataframe of the dataset (shuffled wellwise)
+        :param train_wells: list of training wells
+        :param val_wells: list of validation wells
+        :param test_wells: list of test wells
+        :return: pandas dataframes for the training, validation and test sets
+        """
         df_test = df.loc[df[self.well_column].isin(test_wells)]
-        df_train_full = df.loc[df[self.well_column].isin(train_wells)]
-        df_train, df_val = train_test_split(df_train_full, test_size=self.validation_size, random_state=42)
+        df_train = df.loc[df[self.well_column].isin(train_wells)]
+        df_val = df.loc[df[self.well_column].isin(val_wells)]
+
         wells_in_test_df = list(set(df_test[self.well_column]))
         assert all([well in test_wells for well in wells_in_test_df]), "train/test split is incorrect in terms of wells"
-        return df_train_full, df_train, df_val, df_test, test_wells
 
-    def torch_dataset_train_test_val(self, df_train, df_val,  df_test):
+        setattr(Train_test_split, "test_wells", test_wells)
+        setattr(Train_test_split, "train_wells", train_wells)
+        setattr(Train_test_split, "val_wells", val_wells)
+        return df_train, df_val, df_test
+
+    def save_train_val_test_split(self, df_train, df_val,  df_test):
+        """
+        Saves the different datasets to disc
+
+        :param df_train: pandas dataframe for training set
+        :param df_val: pandas dataframe for validatino set
+        :param df_test: pandas dataframe for test set
+        :return: None
+        """
+        df_train.to_csv("./data/train_regression.csv", sep=';', index=False)
+        df_val.to_csv("./data/val_regression.csv", sep=";", index=False)
+        df_test.to_csv("./data/test_regression.csv", sep=';', index=False)
+
+    def load_train_val_test_split(self):
+        """
+        Loads the datasets from disc
+
+        :return: triplet of pandas dataframes for the different datasets
+        """
+        df_train = pd.read_csv("./data/train_regression.csv", sep=";")
+        df_val = pd.read_csv("./data/val_regression.csv", sep=";")
+        df_test = pd.read_csv("./data/test_regression.csv", sep=";")
+
+        return df_train, df_val, df_test
+
+    def torch_dataset_train_val_test(self, df_train, df_val, df_test):
+        """
+        Creates torch datasets from dataframes of the different datasets
+
+        :param df_train: pandas dataframe for training set
+        :param df_val: pandas dataframe for validation set
+        :param df_test: pandas dataframe for test set
+        :return: triplet of torch datasets for the training, validation and test set
+        """
         variables = df_train.columns.values
         explanatory_variables = [var for var in variables if var not in [self.target_variable, self.well_column]]
         setattr(Train_test_split, "explanatory_variables", explanatory_variables)
 
-        y_train, y_val, y_test = df_train[self.target_variable], df_val[self.target_variable], df_test[self.target_variable]
-        y_train = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1)
-        y_val = torch.tensor(y_val.values, dtype=torch.float32).view(-1, 1)
-        y_test = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
+        training_set = create_torch_dataset(df_train, self.target_variable, self.explanatory_variables)
+        validation_set = create_torch_dataset(df_val, self.target_variable, self.explanatory_variables)
+        test_set = create_torch_dataset(df_test, self.target_variable, self.explanatory_variables)
 
-        X_train, X_val, X_test = df_train[explanatory_variables], df_val[explanatory_variables], df_test[explanatory_variables]
-        X_train = torch.tensor(X_train.values, dtype=torch.float32)
-        X_val = torch.tensor(X_val.values, dtype=torch.float32)
-        X_test = torch.tensor(X_test.values, dtype=torch.float32)
-
-        training_set = torch.utils.data.TensorDataset(X_train, y_train)
-        validation_set = torch.utils.data.TensorDataset(X_val, y_val)
-        test_set = torch.utils.data.TensorDataset(X_test, y_test)
         return training_set, validation_set, test_set
 
-    def train_test_val_split(self):
+    def train_val_test_split(self):
+        """
+        Main function that randomly splits the dataset into the training and test set, and the training set further
+        into training and validation set. The function saves the datasets to disc, and creates torch datasets for the
+        different splits.
+        This function is only called once, as the split is done randomly and will affect the training and testing of
+        the model. Further down the pipeline the different datasets are loaded as dataframes and needs to be transformed
+        into torch datasets, before being fed to the dataloader class.
+
+        :return: triplet containing torch datasets for the different splits
+        """
         df = self.load_preprocessed_data()
         list_of_dfs = self.list_of_dataframes_wellwise(df)
         df_shuffled_wellwise = self.shuffle_wells_return_df(list_of_dfs)
-        _, train_wells, test_wells = self.split_wells(df_shuffled_wellwise)
-        df_train_full, df_train, df_val,  df_test, _ = self.train_test_val_split_df(df_shuffled_wellwise, train_wells, test_wells)
-        training_set, validation_set,  test_set = self.torch_dataset_train_test_val(df_train, df_val, df_test)
-        training_set_full, _, _ = self.torch_dataset_train_test_val(df_train_full, df_val, df_test)
-        return training_set_full, training_set, validation_set,  test_set
+        _, train_wells, val_wells, test_wells = self.split_wells(df_shuffled_wellwise)
+        df_train, df_val, df_test = self.train_val_test_split_df(df_shuffled_wellwise, train_wells, val_wells, test_wells)
+        self.save_train_val_test_split(df_train, df_val, df_test)
+
+        training_set, validation_set, test_set = self.torch_dataset_train_val_test(df_train, df_val, df_test)
+        return training_set, validation_set, test_set
 
 
 if __name__ == "__main__":
@@ -127,17 +192,17 @@ if __name__ == "__main__":
 
     test_size = 0.25
     train_test_splitter = Train_test_split(path_to_preprocessed_data=path_to_preprocessed_data, test_size=test_size)
-    training_set_full, training_set, validation_set, test_set = train_test_splitter.train_test_val_split()
-    print("train: {}".format(len(training_set)))
-    print("val: {}".format(len(validation_set)))
-    print("test: {}".format(len(test_set)))
-    print("train + val: {}".format(len(training_set) + len(validation_set)))
-    print("full train: {}".format(len(training_set_full)))
+    training_set, validation_set, test_set = train_test_splitter.train_val_test_split()
+    print("n_train: {}".format(len(training_set)))
+    print("Training wells: {}".format(train_test_splitter.train_wells))
+    print("n_val: {}".format(len(validation_set)))
+    print("Validation wells: {}".format(train_test_splitter.val_wells))
+    print("n_test: {}".format(len(test_set)))
+    print("Test wells: {}".format(train_test_splitter.test_wells))
 
-
-
+    # The below is simply for testing the dataloader class
     batch_size = 50
-    dataloader = Dataloader(full_training_set=training_set_full, training_set=training_set, validation_set=validation_set, test_set=test_set, batch_size=batch_size)
+    dataloader = Dataloader(training_set=training_set, validation_set=validation_set, test_set=test_set, batch_size=batch_size)
     training_loader = dataloader.training_loader()
     validation_loader = dataloader.validation_loader()
     test_loader = dataloader.test_loader()
@@ -154,7 +219,7 @@ if __name__ == "__main__":
         assert y_val.shape[1] == 1, "multiple or none values for scalar target"
 
     for x_test, y_test in test_loader:
-        assert x_test.shape[0] == batch_size, "dataloder does not work as intended"
-        assert y_test.shape[0] == batch_size, "dataloader does not work as intended"
+        assert x_test.shape[0] == len(test_set), "dataloder does not work as intended"
+        assert y_test.shape[0] == len(test_set), "dataloader does not work as intended"
         assert y_train.shape[1] == 1, "multiple or none values for scalar target"
 
