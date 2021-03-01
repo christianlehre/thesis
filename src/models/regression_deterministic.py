@@ -234,14 +234,45 @@ class RegressionModel(nn.Module):
             y_test = test_well_data["ACS"]
 
             axs[ic].set_ylim(depths.values[-1], depths.values[0])
-            axs[ic].plot(y_predictions, depths, ".")
-            axs[ic].plot(y_test, depths, ".")
+            axs[ic].plot(y_test, depths, ".", label="True")
+            axs[ic].plot(y_predictions, depths, ".", label="Predictions")
+
             axs[ic].set_title(well)
             axs[ic].set_xlabel("ACS")
 
 
         axs[0].set_ylabel("Depth")
+        plt.legend(bbox_to_anchor=(1.05, 1), loc='best')
         plt.tight_layout()
+
+    def plot_predictions_velocity_ratio_test_wells(self, test_df):
+        test_wells = list(set(test_df["well_name"]))
+
+        fig, axs = plt.subplots(1, len(test_wells), figsize=(15, 10), sharey=False)
+        for ic, well in enumerate(test_wells):
+            test_data_well = test_df[test_df["well_name"] == well]
+            acs_test = test_data_well["ACS"]
+            x_test = test_data_well[explanatory_variables]
+            depths = x_test["DEPTH"]
+            ac_test = x_test["AC"]
+
+            ratio_test = np.divide(np.array(ac_test), np.array(acs_test))
+
+            x_test = torch.tensor(x_test.values, dtype=torch.float32)
+            acs_predictions = self.forward(x_test).detach().numpy()
+
+            ratio_predictions = np.divide(np.array(ac_test), np.array(acs_predictions[:, 0]))
+
+            axs[ic].set_ylim(depths.values[-1], depths.values[0])
+            axs[ic].plot(ratio_test, depths, ".", label="True")
+            axs[ic].plot(ratio_predictions, depths, ".", label="Predictions")
+
+            axs[ic].set_title(well)
+            axs[ic].set_xlabel("AC/ACS")
+        axs[0].set_ylabel("Depths")
+        plt.legend(loc="best",bbox_to_anchor=(1.05, 1))
+        plt.tight_layout()
+
 
 
 if __name__ == "__main__":
@@ -385,5 +416,6 @@ if __name__ == "__main__":
 
     # plot predictions for all wells in test set
     model.plot_predictions_test_wells(df_test)
+    model.plot_predictions_velocity_ratio_test_wells(df_test)
 
     plt.show()
