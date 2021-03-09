@@ -62,7 +62,7 @@ class BayesianLinear(nn.Module):
         term1 = 2*torch.log(torch.div(self.prior_sigma, sigma_theta)) - 1
         term2 = torch.pow(torch.div(sigma_theta, self.prior_sigma), 2)
         term3 = torch.pow(torch.div(mu_theta - self.prior_mu, self.prior_sigma), 2)
-        res = 0.5*(term1 + term2 + term3).sum()
+        res = 0.5*(term1 + term2 + term3).sum() / self.n_batches
         return res
 
     def forward(self, x):  # sample from the distribution of parameters every forward pass
@@ -72,7 +72,9 @@ class BayesianLinear(nn.Module):
         else:
             b = 0
 
-        self.parent.accumulated_kl_div += self.kl_div_q_prior(self.weight_mu, self.weight_rho) #self.kl_divergence(w, self.weight_mu, self.weight_rho, self.log_prior_w)
+        self.parent.accumulated_kl_div += self.kl_div_q_prior(self.weight_mu, self.weight_rho) # self.kl_divergence(w, self.weight_mu, self.weight_rho, self.log_prior_w)
         if self.include_bias:
             self.parent.accumulated_kl_div += self.kl_div_q_prior(self.bias_mu, self.bias_rho) #self.kl_divergence(b, self.bias_mu, self.bias_rho, self.log_prior_b)
-        return x @ w + b
+        z = x @ w + b
+
+        return z
