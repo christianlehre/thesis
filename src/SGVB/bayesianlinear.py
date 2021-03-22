@@ -38,7 +38,7 @@ class BayesianLinear(nn.Module):
             self.register_parameter("bias_mu", None)
             self.register_parameter("bias_rho", None)
 
-        # prior distribution of the parameters. Should these be different?
+        # prior distribution of the parameters
         self.prior_weights = torch.distributions.normal.Normal(self.prior_mu, self.prior_sigma)
         self.prior_bias = torch.distributions.normal.Normal(self.prior_mu, self.prior_sigma)
 
@@ -56,7 +56,7 @@ class BayesianLinear(nn.Module):
         log_prob_q = torch.distributions.normal.Normal(mu_theta, torch.log1p(torch.exp(rho_theta))).log_prob(z)
         return (log_prob_q - log_prior).sum() / self.n_batches
 
-    def kl_div_q_prior(self, mu_theta, rho_theta): # as derived.
+    def kl_div_q_prior(self, mu_theta, rho_theta):  # as derived analytically.
         sigma_theta = torch.log1p(torch.exp(rho_theta))
 
         term1 = 2*torch.log(torch.div(self.prior_sigma, sigma_theta)) - 1
@@ -72,9 +72,9 @@ class BayesianLinear(nn.Module):
         else:
             b = 0
 
-        self.parent.accumulated_kl_div += self.kl_div_q_prior(self.weight_mu, self.weight_rho) # self.kl_divergence(w, self.weight_mu, self.weight_rho, self.log_prior_w)
+        self.parent.accumulated_kl_div += self.kl_div_q_prior(self.weight_mu, self.weight_rho)
         if self.include_bias:
-            self.parent.accumulated_kl_div += self.kl_div_q_prior(self.bias_mu, self.bias_rho) #self.kl_divergence(b, self.bias_mu, self.bias_rho, self.log_prior_b)
+            self.parent.accumulated_kl_div += self.kl_div_q_prior(self.bias_mu, self.bias_rho)
         z = x @ w + b
 
         return z
