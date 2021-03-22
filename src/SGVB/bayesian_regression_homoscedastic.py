@@ -68,8 +68,8 @@ class BayesianRegressorHomoscedastic(nn.Module):
         self.bfc2 = BayesianLinear(hidden_size, hidden_size, self.kl_loss, n_batches, prior_mu=0, prior_sigma=1)
         self.bfc3 = BayesianLinear(hidden_size, out_size, self.kl_loss, n_batches, prior_mu=0, prior_sigma=1)
         self.relu = nn.ReLU()
-        self.bn1 = nn.BatchNorm1d(num_features=hidden_size)
-        self.bn2 = nn.BatchNorm1d(num_features=hidden_size)
+        self.bn1 = nn.BatchNorm1d(num_features=hidden_size, track_running_stats=False)
+        self.bn2 = nn.BatchNorm1d(num_features=hidden_size, track_running_stats=False)
 
         # initialize homoscedastic variance
         self.log_var = nn.Parameter(torch.FloatTensor(1,).normal_(mean=-2.5, std=0.001), requires_grad=True)
@@ -215,7 +215,7 @@ if __name__ == "__main__":
     path_to_loss = os.path.join(path_to_losses, training_configuration)
     path_to_loss += ".npz"
 
-    train = False
+    train = True
     if train:
         model.train(mode=True)
         print("Training Bayesian neural network...")
