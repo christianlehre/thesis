@@ -100,7 +100,7 @@ class MCDropoutHomoscedastic(nn.Module):
         output = self.fc3(x_)
         return output
 
-    def loss(self, y, y_pred): # negative log-likelihood - weird looking..
+    def loss(self, y, y_pred): # negative log-likelihood
         neg_loglik = 0.5*(np.log(2*np.pi) + self.log_var + torch.div(torch.mean(torch.pow(y - y_pred, 2)), torch.exp(self.log_var)))
         return neg_loglik/self.precision
 
