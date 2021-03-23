@@ -58,8 +58,6 @@ class MCDropoutHomoscedastic(nn.Module):
         self.fc1 = nn.Linear(input_dim, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
         self.fc3 = nn.Linear(hidden_dim, output_dim)
-        self.bn1 = nn.BatchNorm1d(num_features=hidden_dim)
-        self.bn2 = nn.BatchNorm1d(num_features=hidden_dim)
         self.relu = nn.ReLU()
         self.dropout_rate = 0.10
         self.dropout = nn.Dropout(p=self.dropout_rate)
@@ -88,12 +86,10 @@ class MCDropoutHomoscedastic(nn.Module):
 
     def forward(self, x):
         x_ = self.fc1(x)
-        #x_ = self.bn1(x_)
         x_ = self.relu(x_)
         x_ = self.dropout(x_)
 
         x_ = self.fc2(x_)
-        #x_ = self.bn2(x_)
         x_ = self.relu(x_)
         x_ = self.dropout(x_)
 
