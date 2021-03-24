@@ -59,6 +59,8 @@ class MCDropoutHomoscedastic(nn.Module):
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
         self.fc3 = nn.Linear(hidden_dim, output_dim)
         self.relu = nn.ReLU()
+        self.bn1 = nn.BatchNorm1d(num_features=hidden_dim, track_running_stats=False)
+        self.bn2 = nn.BatchNorm1d(num_features=hidden_dim, track_running_stats=False)
         self.dropout_rate = 0.10
         self.dropout = nn.Dropout(p=self.dropout_rate)
 
@@ -66,6 +68,16 @@ class MCDropoutHomoscedastic(nn.Module):
         self.log_var = nn.Parameter(
             torch.FloatTensor(1,).normal_(mean=-2.5, std=0.001), requires_grad=True
         )
+
+        # initialize weights and biases (He-initialization)
+        self.fc1.weight.data = torch.rand((hidden_dim, input_dim)) * np.sqrt(1 / input_dim)
+        self.fc1.bias.data = torch.zeros(hidden_dim)
+
+        self.fc2.weight.data = torch.rand((hidden_dim, hidden_dim)) * np.sqrt(2 / hidden_dim)
+        self.fc2.bias.data = torch.zeros(hidden_dim)
+
+        self.fc3.weight.data = torch.rand((output_dim, hidden_dim)) * np.sqrt(2 / hidden_dim)
+        self.fc3.bias.data = torch.zeros(output_dim)
 
         self.num_epochs = 100
 
@@ -75,21 +87,25 @@ class MCDropoutHomoscedastic(nn.Module):
         self.M = M
         self.reg_dropout = (1-self.dropout_rate)*self.length_scale**2 / (2*self.N*self.precision)
         self.reg_final = self.length_scale**2 / (2*self.N*self.precision)
-        self.lr = 0.001
+        self.lr = 0.0001
         self.criterion = nn.MSELoss()
         self.optimizer = torch.optim.Adam([
             {'params': self.fc1.parameters(), 'weight_decay': self.reg_dropout},
             {'params': self.fc2.parameters(), 'weight_decay': self.reg_dropout},
             {'params': self.fc3.parameters(), 'weight_decay': self.reg_final},
+            {'params': self.bn1.parameters()},
+            {'params': self.bn2.parameters()},
             {'params': self.log_var}
             ], lr=self.lr)
 
     def forward(self, x):
         x_ = self.fc1(x)
+        x_ = self.bn1(x_)
         x_ = self.relu(x_)
         x_ = self.dropout(x_)
 
         x_ = self.fc2(x_)
+        x_ = self.bn2(x_)
         x_ = self.relu(x_)
         x_ = self.dropout(x_)
 
@@ -97,7 +113,7 @@ class MCDropoutHomoscedastic(nn.Module):
         return output
 
     def loss(self, y, y_pred): # negative log-likelihood
-        neg_loglik = 0.5*(np.log(2*np.pi) + self.log_var + torch.div(torch.mean(torch.pow(y - y_pred, 2)), torch.exp(self.log_var)))
+        neg_loglik = 0.5*len(y)*(np.log(2*np.pi) + self.log_var) + 0.5*torch.div(torch.pow(y - y_pred, 2), torch.exp(self.log_var)).sum()
         return neg_loglik/self.precision
 
     def train_model(self, train_loader, val_loader):
