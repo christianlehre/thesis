@@ -75,18 +75,18 @@ class MCDropoutHeteroscedastic(nn.Module):
         self.fc3.weight.data = torch.rand((output_dim, hidden_dim))*np.sqrt(2/hidden_dim)
         self.fc3.bias.data = torch.zeros(output_dim)
 
-        self.log_var.weight.data = torch.rand((output_dim, hidden_dim))*np.sqrt(2/hidden_dim)
+        self.log_var.weight.data = torch.randn((output_dim, hidden_dim))*np.sqrt(2/hidden_dim)
         self.log_var.bias.data = torch.zeros(output_dim)
 
         self.N = N
         self.M = M
 
-        self.num_epochs = 10
+        self.num_epochs = 100
         self.precision = 1.0 # TODO: tune this
         self.length_scale = 1  # specifying a standard normal prior for the parameters
         self.reg_dropout = (1-self.dropout_rate)*self.length_scale**2 / (2*self.N*self.precision)
         self.reg_final = self.length_scale**2 / (2*self.N*self.precision)
-        self.lr = 0.001
+        self.lr = 0.0001
         self.optimizer = torch.optim.Adam([
             {'params': self.fc1.parameters(), 'weight_decay': self.reg_dropout},
             {'params': self.fc2.parameters(), 'weight_decay': self.reg_dropout},
@@ -221,7 +221,7 @@ if __name__ == "__main__":
     path_to_loss = os.path.join(path_to_losses, training_configuration)
     path_to_loss += ".npz"
 
-    train = False
+    train = True
     if train:
         model.train(mode=True)  # keep this on during test time, to obtain probabilistic behaviour
         print("Training MC Dropout model (heteroscedastic)...")
