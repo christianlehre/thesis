@@ -48,7 +48,7 @@ def credible_interval(mean, variance, std_multiplier):
     return lower_ci, upper_ci
 
 
-def coverage_probability(test_loader, lower_ci, upper_ci):
+def coverage_probability(y_test, lower_ci, upper_ci):
     """
     Calculates the coverage probability of a credible interval, i.e. the fraction of samples that
     falls inside the credible interval
@@ -58,7 +58,6 @@ def coverage_probability(test_loader, lower_ci, upper_ci):
     :param upper_ci: (list) upper cound of the credible interval for all samples in the test set
     :return: (float) coverage probability, in (0,1)
     """
-    _, y_test = unpack_dataset(test_loader)
     num_samples = len(y_test)
     num_samples_inside_ci = 0
 
