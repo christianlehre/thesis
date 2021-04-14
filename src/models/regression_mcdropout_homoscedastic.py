@@ -79,7 +79,7 @@ class MCDropoutHomoscedastic(nn.Module):
         self.fc3.weight.data = torch.rand((output_dim, hidden_dim)) * np.sqrt(2 / hidden_dim)
         self.fc3.bias.data = torch.zeros(output_dim)
 
-        self.num_epochs = 100
+        self.num_epochs = 10
 
         self.precision = 1.0  # TODO: tune this
         self.length_scale = 1  # standard normal prior on the parameters
