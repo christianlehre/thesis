@@ -6,7 +6,7 @@ import time
 import torch.nn as nn
 from matplotlib import pyplot as plt
 from torchinfo import summary
-from bayesianlinear import BayesianLinear
+from src.SGVB.bayesianlinear import BayesianLinear
 from src.dataloader.dataloader import Dataloader
 
 def create_torch_dataset(df, target, predictors):

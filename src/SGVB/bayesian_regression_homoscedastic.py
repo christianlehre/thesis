@@ -5,7 +5,7 @@ import os
 import time
 import torch.nn as nn
 from matplotlib import pyplot as plt
-from bayesianlinear import BayesianLinear
+from src.SGVB.bayesianlinear import BayesianLinear
 
 from src.dataloader.dataloader import Dataloader
 
