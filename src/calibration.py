@@ -5,9 +5,10 @@ from matplotlib import pyplot as plt
 from src.utils import *
 from src.models.regression_mcdropout_homoscedastic import MCDropoutHomoscedastic
 from src.models.regression_mcdropout_heteroscedastic import MCDropoutHeteroscedastic
+from src.SGVB.bayesian_regression_homoscedastic import BayesianRegressorHomoscedastic as SGVBHomoscedastic
+from src.SGVB.bayesian_regression_heteroscedastic import BayesianRegressor as SGVBHeteroscedastic
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-
 
 if __name__ == "__main__":
     print(os.getcwd())
@@ -33,20 +34,35 @@ if __name__ == "__main__":
     N = len(training_set)
     M = int(N / batch_size)  # number of mini-batches
 
-    # Initialize and load models
-    model_heteroscedastic = MCDropoutHeteroscedastic(input_dim=input_dim, hidden_dim=hidden_dim,
-                                                     output_dim=output_dim, N=N, M=M)
-    model_homoscedastic = MCDropoutHomoscedastic(input_dim=input_dim, hidden_dim=hidden_dim,
-                                                 output_dim=output_dim, N=N, M=M)
-    heteroscedastic = True
-    if heteroscedastic:
-        model = model_heteroscedastic
-        title = "Heteroscedastic"
-        training_configuration = "mcdropout_" + title.lower() + "_"
+    # Choose model to extract calibration curves from
+    heteroscedastic = False
+    mcdropout = True
+
+    if mcdropout:
+        training_configuration = "mcdropout_"
+        model_type = "MC Dropout"
     else:
-        model = model_homoscedastic
+        training_configuration = "sgvb_"
+        model_type = "SGVB"
+
+    if heteroscedastic:
+        title = "Heteroscedastic"
+        training_configuration += title.lower() + "_"
+        if model_type == "MC Dropout":
+            model = MCDropoutHeteroscedastic(input_dim=input_dim, hidden_dim=hidden_dim,
+                                             output_dim=output_dim, N=N, M=M)
+        else:
+            model = SGVBHeteroscedastic(in_size=input_dim, hidden_size=hidden_dim,
+                                        out_size=output_dim, n_batches=M)
+    else:
         title = "Homoscedastic"
-        training_configuration = "mcdropout_" + title.lower() + "_"
+        training_configuration += title.lower() + "_"
+        if model_type == "MC Dropout":
+            model = MCDropoutHomoscedastic(input_dim=input_dim, hidden_dim=hidden_dim,
+                                           output_dim=output_dim, N=N, M=M)
+        else:
+            model = SGVBHomoscedastic(in_size=input_dim, hidden_size=hidden_dim,
+                                      out_size=output_dim, n_batches=M)
 
     training_configuration += "lr_" + str(model.lr) + "_numepochs_" + str(
         model.num_epochs) + "_hiddenunits_" \
@@ -66,8 +82,10 @@ if __name__ == "__main__":
     # calculate critical values of the standard distirbution for a range of quantiles
     significance_levels = [0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 0.95, 0.99]
 
+
     def significance_to_quantiles(alpha):
         return 1 - (1 - alpha) / 2
+
 
     qs = [significance_to_quantiles(alpha) for alpha in significance_levels]
     critical_values = norm.ppf(qs)
@@ -92,7 +110,7 @@ if __name__ == "__main__":
             coverage.append(empirical_coverage)
         coverages[i, :] = coverage
         plt.figure()
-        plt.title("Coverage for well {}, {} MC Dropout model".format(well, title))
+        plt.title("Calibration for well {}, {} {} model".format(well, title, model_type))
         plt.plot(significance_levels, coverage, "r*", label="Empirical")
         plt.plot(significance_levels, significance_levels, "k--", label="Theoretical")
         plt.ylabel("Significance level")
@@ -102,23 +120,24 @@ if __name__ == "__main__":
         plt.legend()
         plt.grid()
         plt.tight_layout()
-        plt.savefig("./../../Figures/MCDropout/{}/well{}.pdf".format(title, well.replace("/", "")))
+        plt.savefig(
+            "./../../Figures/{}/{}/Calibration/well{}.pdf".format(model_type.replace(" ", ""), title, well.replace("/", "")))
     mean_coverage = np.mean(coverages, axis=0)
-    var_coverage = np.std(coverages, axis=0)**2
+    var_coverage = np.std(coverages, axis=0) ** 2
     lower_ci, upper_ci = credible_interval(mean_coverage, var_coverage, std_multiplier=1.96)  # --> 95% CI for coverage
 
     plt.figure(figsize=(12, 8))
-    plt.title("Coverage across wells, {} MC Dropout model".format(title), fontsize=24)
-    plt.plot(significance_levels, mean_coverage, "r*", label="Average empirical")
+    plt.title("Calibration across wells, {} {} model".format(title, model_type), fontsize=24)
+    plt.plot(significance_levels, mean_coverage, "r*", label="Empirical mean")
     plt.fill_between(significance_levels, lower_ci, upper_ci, color="grey", alpha=0.5, label="95% CI")
     plt.plot(significance_levels, significance_levels, "k--", label="Theoretical")
     plt.ylabel("Significance level", fontsize=20)
     plt.xlabel("Coverage probability", fontsize=20)
-    plt.xticks(significance_levels,fontsize=16, rotation=45)
+    plt.xticks(significance_levels, fontsize=16, rotation=45)
     plt.yticks(significance_levels, fontsize=16, rotation=25)
     plt.legend(fontsize=16)
     plt.grid()
     plt.tight_layout()
-    plt.savefig("./../../Figures/MCDropout/{}/average_coverage.pdf".format(title))
+    plt.savefig("./../../Figures/{}/{}/Calibration/average_coverage.pdf".format(model_type.replace(" ", ""), title))
 
     plt.show()
