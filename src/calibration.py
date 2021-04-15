@@ -35,8 +35,8 @@ if __name__ == "__main__":
     M = int(N / batch_size)  # number of mini-batches
 
     # Choose model to extract calibration curves from
-    heteroscedastic = False
-    mcdropout = True
+    heteroscedastic = True
+    mcdropout = False
 
     if mcdropout:
         training_configuration = "mcdropout_"
@@ -64,7 +64,8 @@ if __name__ == "__main__":
             model = SGVBHomoscedastic(in_size=input_dim, hidden_size=hidden_dim,
                                       out_size=output_dim, n_batches=M)
 
-    training_configuration += "lr_" + str(model.lr) + "_numepochs_" + str(
+    #TODO: include dropoutrate in path to mc dropout models
+    training_configuration +="dropout_"+str(model.dropout_rate)+"_lr_" + str(model.lr) + "_numepochs_" + str(
         model.num_epochs) + "_hiddenunits_" \
                               + str(hidden_dim) + "_hiddenlayers_2" + "_batch_size_" + str(batch_size)
     training_configuration = training_configuration.replace(".", "")
@@ -73,7 +74,7 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load(path_to_model))
     model.eval()
     for m in model.modules():
-        if m.__class__.__name__.startswith("Dropout"):
+        if m.__class__.__name__.startswith("Dropout") and mcdropout:
             m.train()
         else:
             m.eval()
