@@ -1,4 +1,3 @@
-import torch
 import pandas as pd
 import numpy as np
 import os
@@ -27,7 +26,8 @@ class BayesianRegressorHomoscedastic(nn.Module):
         self.relu = nn.ReLU()
         self.bn1 = nn.BatchNorm1d(num_features=hidden_size, track_running_stats=False)
         self.bn2 = nn.BatchNorm1d(num_features=hidden_size, track_running_stats=False)
-
+        self.dropout_rate = 0.10
+        self.dropout = nn.Dropout(p=0.10)
         # initialize homoscedastic variance
         self.log_var = nn.Parameter(torch.FloatTensor(1,).normal_(mean=-2.5, std=0.001), requires_grad=True)
 
@@ -48,10 +48,12 @@ class BayesianRegressorHomoscedastic(nn.Module):
         x_ = self.bfc1(x)
         x_ = self.bn1(x_)
         x_ = self.relu(x_)
+        x_ = self.dropout(x_)
 
         x_ = self.bfc2(x_)
         x_ = self.bn2(x_)
         x_ = self.relu(x_)
+        x_ = self.dropout(x_)
 
         output = self.bfc3(x_)
 
@@ -163,7 +165,7 @@ if __name__ == "__main__":
 
     model = BayesianRegressorHomoscedastic(in_size=input_dim, hidden_size=hidden_dim, out_size=output_dim, n_batches=M)
 
-    training_configuration = "bayesian_homoscedastic_lr_"+str(model.lr)+"_numepochs_"+str(model.num_epochs)+"_hiddenunits_"\
+    training_configuration = "sgvb_homoscedastic_dropout_"+str(model.dropout_rate)+"_lr_"+str(model.lr)+"_numepochs_"+str(model.num_epochs)+"_hiddenunits_"\
                              +str(hidden_dim)+"_hiddenlayers_2"+"_batch_size_"+str(batch_size)
     training_configuration = training_configuration.replace(".", "")
     path_to_model = "./data/models/regression/"
@@ -190,6 +192,8 @@ if __name__ == "__main__":
             training_loss = data["training_loss"]
             validation_loss = data["validation_loss"]
             training_time = data["training_time"]
+
+    model.train(mode=False) # eller? vil ikke ha ekstra usikkerhet fra dropout her
 
     # Training curves
     plt.figure()

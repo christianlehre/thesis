@@ -1,4 +1,3 @@
-import torch
 import pandas as pd
 import numpy as np
 import os
@@ -10,6 +9,7 @@ from src.SGVB.bayesianlinear import BayesianLinear
 from src.dataloader.dataloader import Dataloader
 from src.utils import *
 
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 class KL:
     accumulated_kl_div = 0
@@ -27,6 +27,8 @@ class BayesianRegressor(nn.Module):
         self.relu = nn.ReLU()
         self.batchnorm1 = nn.BatchNorm1d(num_features=hidden_size, track_running_stats=False)
         self.batchnorm2 = nn.BatchNorm1d(num_features=hidden_size, track_running_stats=False)
+        self.dropout_rate = 0.10
+        self.dropout = nn.Dropout(p=self.dropout_rate)
 
         self.num_epochs = 10
         self.n_batches = n_batches
@@ -38,10 +40,12 @@ class BayesianRegressor(nn.Module):
         x_ = self.bfc1(x)
         x_ = self.batchnorm1(x_)
         x_ = self.relu(x_)
+        x_ = self.dropout(x_)
 
         x_ = self.bfc2(x_)
         x_ = self.batchnorm2(x_)
         x_ = self.relu(x_)
+        x_ = self.dropout(x_)
 
         y_hat = self.bfc3(x_)
         log_var = self.bfc_logvar(x_)
@@ -164,7 +168,7 @@ if __name__ == "__main__":
 
     model = BayesianRegressor(in_size=input_dim, hidden_size=hidden_dim, out_size=output_dim, n_batches=M)
 
-    training_conf = "bayesian_heteroscedastic_lr"+str(model.lr)+"_numepochs_"+str(model.num_epochs)+"_hiddenunits_"\
+    training_conf = "sgvb_heteroscedastic_dropout_"+str(model.dropout_rate)+"_lr_"+str(model.lr)+"_numepochs_"+str(model.num_epochs)+"_hiddenunits_"\
                     +str(hidden_dim)+"_hiddenlayers_2"+"_batchsize_"+str(batch_size)
     training_conf = training_conf.replace(".", "")
     path_to_model = "./data/models/regression/"
@@ -173,7 +177,7 @@ if __name__ == "__main__":
     path_to_loss = os.path.join(path_to_losses, training_conf)
     path_to_loss += ".npz"
 
-    train = False
+    train = True
     if train:
         model.train(mode=True)
         print("Training Bayesian neural network...")
@@ -192,7 +196,7 @@ if __name__ == "__main__":
             val_loss = data["validation_loss"]
             training_time = data["training_time"]
 
-    model.train(mode=True)
+    model.train(mode=False) # Eller?
 
     plt.figure()
     plt.plot(range(model.num_epochs), train_loss, label="training")
