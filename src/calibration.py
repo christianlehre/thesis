@@ -37,6 +37,7 @@ if __name__ == "__main__":
     # Choose model to extract calibration curves from
     heteroscedastic = True
     mcdropout = False
+    epistemic = True
 
     if mcdropout:
         training_configuration = "mcdropout_"
@@ -106,12 +107,18 @@ if __name__ == "__main__":
 
         coverage = []
         for z in critical_values:
-            lower_ci, upper_ci = credible_interval(mean_predictions, var_total, std_multiplier=z)
+            if epistemic:
+                lower_ci, upper_ci = credible_interval(mean_predictions, var_epistemic, std_multiplier=z)
+            else:
+                lower_ci, upper_ci = credible_interval(mean_predictions, var_total, std_multiplier=z)
             empirical_coverage = coverage_probability(y_test, lower_ci, upper_ci)
             coverage.append(empirical_coverage)
         coverages[i, :] = coverage
         plt.figure()
-        plt.title("Calibration for well {}, {} {} model".format(well, title, model_type))
+        if epistemic:
+            plt.title("Epistemic Calibration well {}, {} {}".format(well, title, model_type))
+        else:
+            plt.title("Calibration for well {}, {} {} model".format(well, title, model_type))
         plt.plot(significance_levels, coverage, "r*", label="Empirical")
         plt.plot(significance_levels, significance_levels, "k--", label="Theoretical")
         plt.ylabel("Significance level")
@@ -121,14 +128,26 @@ if __name__ == "__main__":
         plt.legend()
         plt.grid()
         plt.tight_layout()
-        plt.savefig(
-            "./../../Figures/{}/{}/Calibration/well{}.pdf".format(model_type.replace(" ", ""), title, well.replace("/", "")))
+
+        if epistemic:
+            plt.savefig(
+                "./../../Figures/{}/{}/Calibration/Epistemic/well{}.pdf".format(model_type.replace(" ", ""), title,
+                                                                      well.replace("/", "")))
+        else:
+            plt.savefig(
+                "./../../Figures/{}/{}/Calibration/well{}.pdf".format(model_type.replace(" ", ""), title, well.replace("/", "")))
+
     mean_coverage = np.mean(coverages, axis=0)
     var_coverage = np.std(coverages, axis=0) ** 2
     lower_ci, upper_ci = credible_interval(mean_coverage, var_coverage, std_multiplier=1.96)  # --> 95% CI for coverage
 
     plt.figure(figsize=(12, 8))
-    plt.title("Calibration across wells, {} {} model".format(title, model_type), fontsize=24)
+
+    if epistemic:
+        plt.title("Epistemic Calibration across wells, {} {}".format(title, model_type), fontsize=24)
+    else:
+        plt.title("Calibration across wells, {} {} model".format(title, model_type), fontsize=24)
+
     plt.plot(significance_levels, mean_coverage, "r*", label="Empirical mean")
     plt.fill_between(significance_levels, lower_ci, upper_ci, color="grey", alpha=0.5, label="95% CI")
     plt.plot(significance_levels, significance_levels, "k--", label="Theoretical")
@@ -139,6 +158,10 @@ if __name__ == "__main__":
     plt.legend(fontsize=16)
     plt.grid()
     plt.tight_layout()
-    plt.savefig("./../../Figures/{}/{}/Calibration/average_coverage.pdf".format(model_type.replace(" ", ""), title))
+
+    if epistemic:
+        plt.savefig("./../../Figures/{}/{}/Calibration/Epistemic/average_coverage.pdf".format(model_type.replace(" ", ""), title))
+    else:
+        plt.savefig("./../../Figures/{}/{}/Calibration/average_coverage.pdf".format(model_type.replace(" ", ""), title))
 
     plt.show()
