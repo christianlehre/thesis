@@ -1,6 +1,6 @@
 import os
 import ast
-import time
+from collections import OrderedDict
 from matplotlib import pyplot as plt
 from src.dataloader.dataloader import Dataloader
 from src.utils import *
@@ -10,7 +10,7 @@ from src.SGVB.bayesian_regression_homoscedastic import BayesianRegressorHomosced
 from src.SGVB.bayesian_regression_heteroscedastic import BayesianRegressor as SGVBHeteroscedastic
 
 
-def nested_dictionary(test_loader,input_dim, hidden_dim, output_dim, N, M, path_to_models="./data/models/regression/varying_training_set_size"):
+def nested_dictionary(test_loader,input_dim, hidden_dim, output_dim, N, M, dropout_rate, path_to_models):
     uncertainty_over_all_training_size = {}
     # Iterate over training set size
     for dir in os.listdir(path_to_models):
@@ -21,14 +21,17 @@ def nested_dictionary(test_loader,input_dim, hidden_dim, output_dim, N, M, path_
         uncertainty_per_training_size = {}
         # Iterate over models
         for model_path in os.listdir(path_to_models_with_same_training_sets):
+            if model_path.startswith("."):
+                continue
+
             # Initialize model
             if model_path.startswith("mcdropout_homoscedastic"):
-                model = MCDropoutHomoscedastic(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, N=N, M=M)
-                model.dropout_rate = 0.50
+                model = MCDropoutHomoscedastic(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, N=N,
+                                               M=M, dropout_rate=dropout_rate)
                 model_type = "mcdropout_homoscedastic"
             elif model_path.startswith("mcdropout_heteroscedastic"):
-                model = MCDropoutHeteroscedastic(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, N=N, M=M)
-                model.dropout_rate = 0.50
+                model = MCDropoutHeteroscedastic(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, N=N,
+                                                 M=M, dropout_rate=dropout_rate)
                 model_type = "mcdropout_heteroscedastic"
             elif model_path.startswith("sgvb_homoscedastic"):
                 model = SGVBHomoscedastic(in_size=input_dim, hidden_size=hidden_dim, out_size=output_dim, n_batches=M)
@@ -116,18 +119,19 @@ if __name__ == "__main__":
     batch_size = 100
     N = len(training_set)
     M = int(N / batch_size)  # number of mini-batches
+    dropout_rate = 0.10
 
     dataloader = Dataloader(training_set=training_set, validation_set=validation_set,
                             test_set=test_set, batch_size=batch_size)
 
     test_loader = dataloader.test_loader()
-
-    path_to_dictionary = "./data/epistemic_uncertainty/dropout_010_epistemic_uncertainty_varying_training_set_size.txt"
+    path_to_models = "./data/models/regression/varying_training_set_size/dropout"+str(dropout_rate).replace(".", "")
+    path_to_dictionary = "./data/epistemic_uncertainty/dropout_"+str(dropout_rate).replace(".","")+"0_epistemic_uncertainty_varying_training_set_size.txt"
 
     create_dict = False
 
     if create_dict:
-        uncertainty_dict = nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, N, M)
+        uncertainty_dict = nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, N, M, dropout_rate, path_to_models)
         save_dictionary(uncertainty_dict, path_to_dictionary)
     else:
         uncertainty_dict = load_dictionary(path_to_dictionary)
@@ -145,6 +149,8 @@ if __name__ == "__main__":
     dict_to_plot["80%"] = uncertainty_dict["size80"]
     dict_to_plot["90%"] = uncertainty_dict["size90"]
     dict_to_plot["100%"] = uncertainty_dict["size100"]
+
+    dict_to_plot = {k : dict(OrderedDict(sorted(v.items()))) for k, v in dict_to_plot.items()}
 
     plot_nested_dict(dict_to_plot)
     plt.tight_layout()
