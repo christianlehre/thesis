@@ -93,7 +93,7 @@ class BayesianRegressorHomoscedastic(nn.Module):
             if param.requires_grad:
                 print(name)
 
-    def evaluate_performamce(self, test_loader, B=100):
+    def evaluate_performance(self, test_loader, B=100):
         x_test, y_test = unpack_dataset(test_loader)
         mse, mae = [], []
         for _ in range(B):
