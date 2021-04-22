@@ -33,7 +33,7 @@ if __name__ == "__main__":
     batch_size = 100
     N = len(training_set)
     M = int(N / batch_size)  # number of mini-batches
-
+    dropout_rate = 0.10
     # Choose model to extract calibration curves from
     heteroscedastic = True
     mcdropout = False
@@ -51,7 +51,7 @@ if __name__ == "__main__":
         training_configuration += title.lower() + "_"
         if model_type == "MC Dropout":
             model = MCDropoutHeteroscedastic(input_dim=input_dim, hidden_dim=hidden_dim,
-                                             output_dim=output_dim, N=N, M=M)
+                                             output_dim=output_dim, N=N, M=M, dropout_rate=dropout_rate)
         else:
             model = SGVBHeteroscedastic(in_size=input_dim, hidden_size=hidden_dim,
                                         out_size=output_dim, n_batches=M)
@@ -60,7 +60,7 @@ if __name__ == "__main__":
         training_configuration += title.lower() + "_"
         if model_type == "MC Dropout":
             model = MCDropoutHomoscedastic(input_dim=input_dim, hidden_dim=hidden_dim,
-                                           output_dim=output_dim, N=N, M=M)
+                                           output_dim=output_dim, N=N, M=M, dropout_rate=dropout_rate)
         else:
             model = SGVBHomoscedastic(in_size=input_dim, hidden_size=hidden_dim,
                                       out_size=output_dim, n_batches=M)
