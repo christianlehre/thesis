@@ -33,9 +33,9 @@ if __name__ == "__main__":
     hidden_dim = 100
     output_dim = 1
     batch_size = 100
-
-    # Choose model to extract calibration curves from
-    heteroscedastic = True
+    dropout_rate = 0.50
+    # Choose model type to train
+    heteroscedastic = False
     mcdropout = True
 
     # iterate over fractions of full training dataset
@@ -61,8 +61,7 @@ if __name__ == "__main__":
             training_configuration += title.lower() + "_"
             if model_type == "MC Dropout":
                 model = MCDropoutHeteroscedastic(input_dim=input_dim, hidden_dim=hidden_dim,
-                                                 output_dim=output_dim, N=N, M=M)
-                model.dropout_rate = 0.50
+                                                 output_dim=output_dim, N=N, M=M, dropout_rate=dropout_rate)
             else:
                 model = SGVBHeteroscedastic(in_size=input_dim, hidden_size=hidden_dim,
                                             out_size=output_dim, n_batches=M)
@@ -71,8 +70,7 @@ if __name__ == "__main__":
             training_configuration += title.lower() + "_"
             if model_type == "MC Dropout":
                 model = MCDropoutHomoscedastic(input_dim=input_dim, hidden_dim=hidden_dim,
-                                               output_dim=output_dim, N=N, M=M)
-                model.dropout_rate = 0.50
+                                               output_dim=output_dim, N=N, M=M, dropout_rate=dropout_rate)
             else:
                 model = SGVBHomoscedastic(in_size=input_dim, hidden_size=hidden_dim,
                                           out_size=output_dim, n_batches=M)
@@ -83,6 +81,7 @@ if __name__ == "__main__":
         training_configuration = training_configuration.replace(".", "")
         path_to_model = "./data/models/regression/varying_training_set_size/"
         path_to_loss = "./data/loss/regression/varying_training_set_size/"
+        path_to_model += "dropout"+str(dropout_rate).replace(".", "")+"/"
         path_to_model += "size"+str(int(100*f))+"/"
         path_to_loss += "size"+str(int(100*f))+"/"
 
