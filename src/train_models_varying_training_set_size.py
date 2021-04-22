@@ -35,8 +35,8 @@ if __name__ == "__main__":
     batch_size = 100
 
     # Choose model to extract calibration curves from
-    heteroscedastic = False
-    mcdropout = False
+    heteroscedastic = True
+    mcdropout = True
 
     # iterate over fractions of full training dataset
     fractions = np.linspace(0.10, 0.90, num=9)
@@ -62,6 +62,7 @@ if __name__ == "__main__":
             if model_type == "MC Dropout":
                 model = MCDropoutHeteroscedastic(input_dim=input_dim, hidden_dim=hidden_dim,
                                                  output_dim=output_dim, N=N, M=M)
+                model.dropout_rate = 0.50
             else:
                 model = SGVBHeteroscedastic(in_size=input_dim, hidden_size=hidden_dim,
                                             out_size=output_dim, n_batches=M)
@@ -71,6 +72,7 @@ if __name__ == "__main__":
             if model_type == "MC Dropout":
                 model = MCDropoutHomoscedastic(input_dim=input_dim, hidden_dim=hidden_dim,
                                                output_dim=output_dim, N=N, M=M)
+                model.dropout_rate = 0.50
             else:
                 model = SGVBHomoscedastic(in_size=input_dim, hidden_size=hidden_dim,
                                           out_size=output_dim, n_batches=M)
