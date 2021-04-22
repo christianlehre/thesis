@@ -33,7 +33,7 @@ if __name__ == "__main__":
     hidden_dim = 100
     output_dim = 1
     batch_size = 100
-    dropout_rate = 0.50
+    dropout_rate = 0.10
     # Choose model type to train
     heteroscedastic = False
     mcdropout = True
