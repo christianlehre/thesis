@@ -10,7 +10,7 @@ from src.utils import *
 
 
 class MCDropoutHeteroscedastic(nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim, N, M):
+    def __init__(self, input_dim, hidden_dim, output_dim, N, M, dropout_rate):
         super(MCDropoutHeteroscedastic, self).__init__()
         self.fc1 = nn.Linear(input_dim, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
@@ -19,7 +19,7 @@ class MCDropoutHeteroscedastic(nn.Module):
         self.relu = nn.ReLU()
         self.bn1 = nn.BatchNorm1d(num_features=hidden_dim, track_running_stats=False)
         self.bn2 = nn.BatchNorm1d(num_features=hidden_dim, track_running_stats=False)
-        self.dropout_rate = 0.10
+        self.dropout_rate = dropout_rate
         self.dropout = nn.Dropout(p=self.dropout_rate)
 
         # initialize weights and biases (He-initialization)
@@ -159,6 +159,7 @@ if __name__ == "__main__":
     batch_size = 100
     N = len(training_set)
     M = int(N/batch_size) # number of mini-batches
+    dropout_rate = 0.10
 
     dataloader = Dataloader(training_set=training_set, validation_set=validation_set,
                             test_set=test_set, batch_size=batch_size)
@@ -167,9 +168,10 @@ if __name__ == "__main__":
     validation_loader = dataloader.validation_loader()
     test_loader = dataloader.test_loader()
 
-    model = MCDropoutHeteroscedastic(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, N=N, M=M)
+    model = MCDropoutHeteroscedastic(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, N=N, M=M,
+                                     dropout_rate=dropout_rate)
 
-    training_configuration = "mcdropout_heteroscedastic_lr_"+str(model.lr)+"_numepochs_"+str(model.num_epochs)+"_hiddenunits_"\
+    training_configuration = "mcdropout_heteroscedastic_dropout_"+str(model.dropout_rate)+"_lr_"+str(model.lr)+"_numepochs_"+str(model.num_epochs)+"_hiddenunits_"\
                              +str(hidden_dim)+"_hiddenlayers_2"+"_batch_size_"+str(batch_size)
     training_configuration = training_configuration.replace(".", "")
     path_to_model = "./data/models/regression/"
@@ -178,7 +180,7 @@ if __name__ == "__main__":
     path_to_loss = os.path.join(path_to_losses, training_configuration)
     path_to_loss += ".npz"
 
-    train = False
+    train = True
     if train:
         model.train(mode=True)  # keep this on during test time, to obtain probabilistic behaviour
         print("Training MC Dropout model (heteroscedastic)...")
