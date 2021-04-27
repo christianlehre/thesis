@@ -169,7 +169,7 @@ if __name__ == "__main__":
     model = BayesianRegressor(in_size=input_dim, hidden_size=hidden_dim, out_size=output_dim, n_batches=M)
 
     training_conf = "sgvb_heteroscedastic_dropout_"+str(model.dropout_rate)+"_lr_"+str(model.lr)+"_numepochs_"+str(model.num_epochs)+"_hiddenunits_"\
-                    +str(hidden_dim)+"_hiddenlayers_2"+"_batchsize_"+str(batch_size)
+                    +str(hidden_dim)+"_hiddenlayers_2"+"_batch_size_"+str(batch_size)
     training_conf = training_conf.replace(".", "")
     path_to_model = "./data/models/regression/"
     path_to_model += training_conf + ".pt"
@@ -177,7 +177,7 @@ if __name__ == "__main__":
     path_to_loss = os.path.join(path_to_losses, training_conf)
     path_to_loss += ".npz"
 
-    train = True
+    train = False
     if train:
         model.train(mode=True)
         print("Training Bayesian neural network...")
@@ -198,13 +198,22 @@ if __name__ == "__main__":
 
     model.train(mode=False) # Eller?
 
+    #mse, mae = model.evaluate_performance(test_loader, B=100)
+    #print("Performance metrics over full test set")
+    #print("MSE: {:.3f} +/- {:.5f}".format(mse[0], mse[1]))
+    #print("MAE: {:.3f} +/- {:.5f}".format(mae[0], mae[1]))
+
     plt.figure()
     plt.plot(range(model.num_epochs), train_loss, label="training")
     plt.plot(range(model.num_epochs), val_loss, label="validation")
-    plt.title("Loss curves, training time {:.2f}s".format(training_time))
-    plt.ylabel("ELBO loss")
-    plt.xlabel("Epoch")
+    plt.title("Loss curves - Heteroscedastic SGVB", fontsize=18)
+    plt.ylabel("ELBO loss", fontsize=16)
+    plt.xlabel("Epoch", fontsize=16)
+    plt.legend(fontsize=14)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
 
+    """
     # Plot predictions and credible intervals for wells in the test set
     wells = list(set(df_test[well_variable]))
     for well in wells:
@@ -225,15 +234,17 @@ if __name__ == "__main__":
         lower_ci_t, upper_ci_t = credible_interval(mean_predictions, var_total, std_multiplier=2)
         empirical_coverage = coverage_probability(y_test, lower_ci_t, upper_ci_t)
         depths = df_test_single_well["DEPTH"]
-        plt.figure(figsize=(6, 10))
-        plt.title("Well: {}. Coverage probability: {:.2f}%".format(well, 100 * empirical_coverage))
-        plt.ylabel("Depth")
-        plt.xlabel("ACS")
+        plt.figure(figsize=(8, 12))
+        plt.title("Well: {}. Coverage probability {:.2f}%".format(well, 100 * empirical_coverage), fontsize=18)
+        plt.ylabel("Depth", fontsize=16)
+        plt.xlabel("ACS", fontsize=16)
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
         plt.plot(y_test, depths, "-", label="true")
         plt.plot(mean_predictions, depths, "-", label="predicted")
-        plt.fill_betweenx(depths, lower_ci_t, upper_ci_t, color="green", alpha=0.2, label="95% CI, total")
-        plt.fill_betweenx(depths, lower_ci_e, upper_ci_e, color="red", alpha=0.2, label="95% CI, epistemic")
+        plt.fill_betweenx(depths, lower_ci_t, upper_ci_t, color="green", alpha=0.2, label="95% CI total")
+        plt.fill_betweenx(depths, lower_ci_e, upper_ci_e, color="red", alpha=0.2, label="95% CI epistemic")
         plt.ylim([depths.values[-1], depths.values[0]])
-        plt.legend(loc="best")
-
+        plt.legend(loc="best", fontsize=12)
+    """
     plt.show()
