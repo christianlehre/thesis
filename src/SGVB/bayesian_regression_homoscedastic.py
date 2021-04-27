@@ -9,6 +9,7 @@ from src.SGVB.bayesianlinear import BayesianLinear
 from src.dataloader.dataloader import Dataloader
 from src.utils import *
 
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 class KL:
     accumulated_kl_div = 0
@@ -174,7 +175,7 @@ if __name__ == "__main__":
     path_to_loss = os.path.join(path_to_losses, training_configuration)
     path_to_loss += ".npz"
 
-    train = True
+    train = False
     if train:
         model.train(mode=True)
         print("Training Bayesian neural network...")
@@ -195,13 +196,21 @@ if __name__ == "__main__":
 
     model.train(mode=False) # eller? vil ikke ha ekstra usikkerhet fra dropout her
 
+    mse, mae = model.evaluate_performance(test_loader, B=100)
+    print("Performance over full test set:")
+    print("MSE: {:.3f} +/- {:.5f}".format(mse[0], mse[1]))
+    print("MAE: {:.3f} +/- {:.5f}".format(mae[0], mae[1]))
+
     # Training curves
     plt.figure()
     plt.plot(range(model.num_epochs), training_loss, label="training")
     plt.plot(range(model.num_epochs), validation_loss, label="validation")
-    plt.title("Loss curves, training time {:.2f}s".format(training_time))
-    plt.ylabel("ELBO loss")
-    plt.xlabel("Epoch")
+    plt.title("Loss curves - Homoscedastic SGVB", fontsize=18)
+    plt.ylabel("ELBO loss", fontsize=16)
+    plt.xlabel("Epoch", fontsize=16)
+    plt.legend(fontsize=14)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
 
     wells = list(set(df_test[well_variable]))
     for well in wells:
@@ -211,7 +220,7 @@ if __name__ == "__main__":
                                                   batch_size=len(test_set),
                                                   shuffle=False)
         x_test, y_test = unpack_dataset(test_loader)
-        mse, mae = model.evaluate_performamce(test_loader, B=100)
+        mse, mae = model.evaluate_performance(test_loader, B=100)
         print("Performance metrics for well {}".format(well))
         print("MSE: {:.3f} +/- {:.3f}".format(mse[0], mse[1]))
         print("MAE: {:.3f} +/- {:.3f}".format(mae[0], mae[1]))
@@ -221,14 +230,17 @@ if __name__ == "__main__":
         lower_ci_t, upper_ci_t = credible_interval(mean_predictions, var_total, std_multiplier=2)
         empirical_coverage = coverage_probability(y_test, lower_ci_t, upper_ci_t)
         depths = df_single_well["DEPTH"]
-        plt.figure(figsize=(6, 10))
-        plt.title("Well: {}. Coverage probability: {:.2f}%".format(well, 100*empirical_coverage))
-        plt.ylabel("Depth")
-        plt.xlabel("ACS")
+        plt.figure(figsize=(8, 12))
+        plt.title("Well: {}. Coverage probability {:.2f}%".format(well, 100*empirical_coverage), fontsize=18)
+        plt.ylabel("Depth", fontsize=16)
+        plt.xlabel("ACS", fontsize=16)
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
         plt.plot(y_test, depths, "-", label="true")
         plt.plot(mean_predictions, depths, label="predicted")
         plt.fill_betweenx(depths, lower_ci_t, upper_ci_t, color="green", alpha=0.2, label="95% CI total")
         plt.fill_betweenx(depths, lower_ci_e, upper_ci_e, color="red", alpha=0.2, label="95% CI epistemic")
         plt.ylim([depths.values[-1], depths.values[0]])
-        plt.legend(loc="best")
+        plt.legend(loc="best", fontsize=12)
+
     plt.show()
