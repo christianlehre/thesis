@@ -216,7 +216,7 @@ if __name__ == "__main__":
     print("Performance over full test set:")
     print("MSE: {:.3f} +/- {:.5f}".format(mse[0], mse[1]))
     print("MAE: {:.3f} +/- {:.5f}".format(mae[0], mae[1]))
-    """
+
     # plot predictions and credible intervals for wells in the test set
     wells = list(set(df_test[well_variable]))
     for well in wells:
@@ -241,13 +241,15 @@ if __name__ == "__main__":
         plt.title("Well: {}. Coverage probability {:.2f}%".format(well, 100*empirical_coverage), fontsize=18)
         plt.ylabel("Depth", fontsize=16)
         plt.xlabel("ACS", fontsize=16)
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
         plt.plot(y_test, depths, "-", label="True")
         plt.plot(mean_predictions, depths, "-", label="Prediction")
         plt.fill_betweenx(depths, lower_ci_t, upper_ci_t, color="green", alpha=0.2, label="95% CI total")
         plt.fill_betweenx(depths, lower_ci_e, upper_ci_e, color="red", alpha=0.2, label="95% CI epistemic")
         plt.ylim([depths.values[-1], depths.values[0]])
         plt.legend(loc="best", fontsize=12)
-    """
+
     plt.show()
 
 
