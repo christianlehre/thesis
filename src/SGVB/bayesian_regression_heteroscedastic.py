@@ -15,7 +15,7 @@ class KL:
     accumulated_kl_div = 0
 
 class BayesianRegressor(nn.Module):
-    def __init__(self, in_size, hidden_size, out_size, n_batches):
+    def __init__(self, in_size, hidden_size, out_size, n_batches, dropout_rate):
         super().__init__()
         self.kl_loss = KL
 
@@ -27,7 +27,7 @@ class BayesianRegressor(nn.Module):
         self.relu = nn.ReLU()
         self.batchnorm1 = nn.BatchNorm1d(num_features=hidden_size, track_running_stats=False)
         self.batchnorm2 = nn.BatchNorm1d(num_features=hidden_size, track_running_stats=False)
-        self.dropout_rate = 0.10
+        self.dropout_rate = dropout_rate
         self.dropout = nn.Dropout(p=self.dropout_rate)
 
         self.num_epochs = 10
@@ -157,6 +157,7 @@ if __name__ == "__main__":
     hidden_dim = 100
     output_dim = 1
     batch_size = 100
+    dropout_rate = 0.10
     N = len(training_set)
     M = int(N/batch_size)  # number of mini-batches in training set
 
@@ -166,7 +167,7 @@ if __name__ == "__main__":
     validation_loader = dataloader.validation_loader()
     test_loader = dataloader.test_loader()
 
-    model = BayesianRegressor(in_size=input_dim, hidden_size=hidden_dim, out_size=output_dim, n_batches=M)
+    model = BayesianRegressor(in_size=input_dim, hidden_size=hidden_dim, out_size=output_dim, n_batches=M, dropout_rate=dropout_rate)
 
     training_conf = "sgvb_heteroscedastic_dropout_"+str(model.dropout_rate)+"_lr_"+str(model.lr)+"_numepochs_"+str(model.num_epochs)+"_hiddenunits_"\
                     +str(hidden_dim)+"_hiddenlayers_2"+"_batch_size_"+str(batch_size)
