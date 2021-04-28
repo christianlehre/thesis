@@ -28,17 +28,19 @@ def nested_dictionary(test_loader,input_dim, hidden_dim, output_dim, N, M, dropo
             if model_path.startswith("mcdropout_homoscedastic"):
                 model = MCDropoutHomoscedastic(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, N=N,
                                                M=M, dropout_rate=dropout_rate)
-                model_type = "mcdropout_homoscedastic"
+                model_type = "MC Dropout Homoscedastic"
             elif model_path.startswith("mcdropout_heteroscedastic"):
                 model = MCDropoutHeteroscedastic(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, N=N,
                                                  M=M, dropout_rate=dropout_rate)
-                model_type = "mcdropout_heteroscedastic"
+                model_type = "MC Dropout Heteroscedastic"
             elif model_path.startswith("sgvb_homoscedastic"):
-                model = SGVBHomoscedastic(in_size=input_dim, hidden_size=hidden_dim, out_size=output_dim, n_batches=M)
-                model_type = "sgvb_homoscedastic"
+                model = SGVBHomoscedastic(in_size=input_dim, hidden_size=hidden_dim, out_size=output_dim, n_batches=M,
+                                          dropout_rate=dropout_rate)
+                model_type = "SGVB Homoscedastic"
             else:
-                model = SGVBHeteroscedastic(in_size=input_dim, hidden_size=hidden_dim, out_size=output_dim, n_batches=M)
-                model_type = "sgvb_heteroscedastic"
+                model = SGVBHeteroscedastic(in_size=input_dim, hidden_size=hidden_dim, out_size=output_dim, n_batches=M,
+                                            dropout_rate=dropout_rate)
+                model_type = "SGVB Heteroscedastic"
 
             path_to_model = os.path.join(path_to_models_with_same_training_sets, model_path)
 
@@ -47,7 +49,7 @@ def nested_dictionary(test_loader,input_dim, hidden_dim, output_dim, N, M, dropo
 
             model.eval()
             for m in model.modules():
-                if m.__class__.__name__.startswith("Dropout") and model_type.startswith("mcdropout"):
+                if m.__class__.__name__.startswith("Dropout") and model_type.startswith("MC"):
                     m.train()
                 else:
                     m.eval()
@@ -119,7 +121,7 @@ if __name__ == "__main__":
     batch_size = 100
     N = len(training_set)
     M = int(N / batch_size)  # number of mini-batches
-    dropout_rate = 0.10
+    dropout_rate = 0.50
 
     dataloader = Dataloader(training_set=training_set, validation_set=validation_set,
                             test_set=test_set, batch_size=batch_size)
@@ -128,7 +130,7 @@ if __name__ == "__main__":
     path_to_models = "./data/models/regression/varying_training_set_size/dropout"+str(dropout_rate).replace(".", "")
     path_to_dictionary = "./data/epistemic_uncertainty/dropout_"+str(dropout_rate).replace(".","")+"0_epistemic_uncertainty_varying_training_set_size.txt"
 
-    create_dict = False
+    create_dict = True
 
     if create_dict:
         uncertainty_dict = nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, N, M, dropout_rate, path_to_models)
