@@ -54,7 +54,7 @@ if __name__ == "__main__":
                                              output_dim=output_dim, N=N, M=M, dropout_rate=dropout_rate)
         else:
             model = SGVBHeteroscedastic(in_size=input_dim, hidden_size=hidden_dim,
-                                        out_size=output_dim, n_batches=M)
+                                        out_size=output_dim, n_batches=M, dropout_rate=dropout_rate)
     else:
         title = "Homoscedastic"
         training_configuration += title.lower() + "_"
@@ -63,7 +63,7 @@ if __name__ == "__main__":
                                            output_dim=output_dim, N=N, M=M, dropout_rate=dropout_rate)
         else:
             model = SGVBHomoscedastic(in_size=input_dim, hidden_size=hidden_dim,
-                                      out_size=output_dim, n_batches=M)
+                                      out_size=output_dim, n_batches=M, dropout_rate=dropout_rate)
 
     #TODO: include dropoutrate in path to mc dropout models
     training_configuration +="dropout_"+str(model.dropout_rate)+"_lr_" + str(model.lr) + "_numepochs_" + str(
