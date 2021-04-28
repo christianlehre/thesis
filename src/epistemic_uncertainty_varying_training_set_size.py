@@ -87,7 +87,7 @@ def plot_nested_dict(dictionary):
     for model in inner_keys:
         y_axis_values = [v[model] for v in dictionary.values()]
 
-        plt.plot(x_axis_values, y_axis_values, label=model.replace("_", " ").title(), linewidth=3)
+        plt.plot(x_axis_values, y_axis_values, label=model, linewidth=3)
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     plt.xlabel("Fraction of training set", fontsize=20)
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     path_to_models = "./data/models/regression/varying_training_set_size/dropout"+str(dropout_rate).replace(".", "")
     path_to_dictionary = "./data/epistemic_uncertainty/dropout_"+str(dropout_rate).replace(".","")+"0_epistemic_uncertainty_varying_training_set_size.txt"
 
-    create_dict = True
+    create_dict = False
 
     if create_dict:
         uncertainty_dict = nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, N, M, dropout_rate, path_to_models)
