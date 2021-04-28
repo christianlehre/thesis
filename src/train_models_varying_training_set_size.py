@@ -33,10 +33,10 @@ if __name__ == "__main__":
     hidden_dim = 100
     output_dim = 1
     batch_size = 100
-    dropout_rate = 0.10
+    dropout_rate = 0.50
     # Choose model type to train
     heteroscedastic = False
-    mcdropout = True
+    mcdropout = False
 
     # iterate over fractions of full training dataset
     fractions = np.linspace(0.10, 0.90, num=9)
@@ -64,7 +64,7 @@ if __name__ == "__main__":
                                                  output_dim=output_dim, N=N, M=M, dropout_rate=dropout_rate)
             else:
                 model = SGVBHeteroscedastic(in_size=input_dim, hidden_size=hidden_dim,
-                                            out_size=output_dim, n_batches=M)
+                                            out_size=output_dim, n_batches=M, dropout_rate=dropout_rate)
         else:
             title = "Homoscedastic"
             training_configuration += title.lower() + "_"
@@ -73,7 +73,7 @@ if __name__ == "__main__":
                                                output_dim=output_dim, N=N, M=M, dropout_rate=dropout_rate)
             else:
                 model = SGVBHomoscedastic(in_size=input_dim, hidden_size=hidden_dim,
-                                          out_size=output_dim, n_batches=M)
+                                          out_size=output_dim, n_batches=M, dropout_rate=dropout_rate)
 
         training_configuration += "dropout_" + str(model.dropout_rate) + "_lr_" + str(model.lr) + "_numepochs_" + str(
             model.num_epochs) + "_hiddenunits_" \

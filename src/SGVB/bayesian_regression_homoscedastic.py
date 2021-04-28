@@ -28,7 +28,7 @@ class BayesianRegressorHomoscedastic(nn.Module):
         self.bn1 = nn.BatchNorm1d(num_features=hidden_size, track_running_stats=False)
         self.bn2 = nn.BatchNorm1d(num_features=hidden_size, track_running_stats=False)
         self.dropout_rate = dropout_rate
-        self.dropout = nn.Dropout(p=0.10)
+        self.dropout = nn.Dropout(p=self.dropout_rate)
         # initialize homoscedastic variance
         self.log_var = nn.Parameter(torch.FloatTensor(1,).normal_(mean=-2.5, std=0.001), requires_grad=True)
 
@@ -155,7 +155,7 @@ if __name__ == "__main__":
     hidden_dim = 100
     output_dim = 1
     batch_size = 100
-    dropout_rate = 0.10
+    dropout_rate = 0.50
     N = len(training_set)
     M = int(N/batch_size)
 
@@ -176,7 +176,7 @@ if __name__ == "__main__":
     path_to_loss = os.path.join(path_to_losses, training_configuration)
     path_to_loss += ".npz"
 
-    train = False
+    train = True
     if train:
         model.train(mode=True)
         print("Training Bayesian neural network...")
