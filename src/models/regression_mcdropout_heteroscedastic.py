@@ -249,7 +249,21 @@ if __name__ == "__main__":
         plt.fill_betweenx(depths, lower_ci_e, upper_ci_e, color="red", alpha=0.2, label="95% CI epistemic")
         plt.ylim([depths.values[-1], depths.values[0]])
         plt.legend(loc="best", fontsize=12)
-
+        # set x-lim for different wells:
+        if well == "25/4-10 S":
+            plt.xlim([-5, 7])
+        elif well == "25/7-6":
+            plt.xlim([-4, 4])
+        elif well == "30/6-26" or well == "30/8-5 T2":
+            plt.xlim([-5, 5])
+        elif well == "30/11-10":
+            plt.xlim([-7, 7])
+        elif well == "30/11-7":
+            plt.xlim([-7, 9])
+        elif well == "30/11-9 ST2":
+            plt.xlim([-3, 7])
+        else:
+            plt.xlim([-5, 11])
     plt.show()
 
 
