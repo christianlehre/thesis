@@ -157,7 +157,7 @@ if __name__ == "__main__":
     hidden_dim = 100
     output_dim = 1
     batch_size = 100
-    dropout_rate = 0.50
+    dropout_rate = 0.10
     N = len(training_set)
     M = int(N/batch_size)  # number of mini-batches in training set
 
@@ -178,7 +178,7 @@ if __name__ == "__main__":
     path_to_loss = os.path.join(path_to_losses, training_conf)
     path_to_loss += ".npz"
 
-    train = True
+    train = False
     if train:
         model.train(mode=True)
         print("Training Bayesian neural network...")
@@ -199,10 +199,10 @@ if __name__ == "__main__":
 
     model.train(mode=False) # Eller?
 
-    #mse, mae = model.evaluate_performance(test_loader, B=100)
-    #print("Performance metrics over full test set")
-    #print("MSE: {:.3f} +/- {:.5f}".format(mse[0], mse[1]))
-    #print("MAE: {:.3f} +/- {:.5f}".format(mae[0], mae[1]))
+    mse, mae = model.evaluate_performance(test_loader, B=100)
+    print("Performance metrics over full test set")
+    print("MSE: {:.3f} +/- {:.5f}".format(mse[0], mse[1]))
+    print("MAE: {:.3f} +/- {:.5f}".format(mae[0], mae[1]))
 
     plt.figure()
     plt.plot(range(model.num_epochs), train_loss, label="training")
@@ -214,7 +214,6 @@ if __name__ == "__main__":
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
 
-    """
     # Plot predictions and credible intervals for wells in the test set
     wells = list(set(df_test[well_variable]))
     for well in wells:
@@ -241,11 +240,29 @@ if __name__ == "__main__":
         plt.xlabel("ACS", fontsize=16)
         plt.xticks(fontsize=16)
         plt.yticks(fontsize=16)
-        plt.plot(y_test, depths, "-", label="true")
-        plt.plot(mean_predictions, depths, "-", label="predicted")
+        plt.plot(y_test, depths, "-", label="True")
+        plt.plot(mean_predictions, depths, "-", label="Prediction")
         plt.fill_betweenx(depths, lower_ci_t, upper_ci_t, color="green", alpha=0.2, label="95% CI total")
         plt.fill_betweenx(depths, lower_ci_e, upper_ci_e, color="red", alpha=0.2, label="95% CI epistemic")
         plt.ylim([depths.values[-1], depths.values[0]])
         plt.legend(loc="best", fontsize=12)
-    """
+        if well == "30/8-5 T2":
+            plt.legend(loc="lower right", fontsize=12)
+        # set x-lim for different wells:
+        if well == "25/4-10 S":
+            plt.xlim([-5, 7])
+        elif well == "25/7-6":
+            plt.xlim([-4, 4])
+        elif well == "30/8-5 T2":
+            plt.xlim([-5, 7])
+        elif well == "30/6-26":
+            plt.xlim([-5, 9])
+        elif well == "30/11-10":
+            plt.xlim([-7, 7])
+        elif well == "30/11-7":
+            plt.xlim([-7, 9])
+        elif well == "30/11-9 ST2":
+            plt.xlim([-4, 8])
+        else:
+            plt.xlim([-5, 11])
     plt.show()
