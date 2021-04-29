@@ -214,8 +214,8 @@ if __name__ == "__main__":
 
     mse, mae = model.evaluate_performance(test_loader, B=100)
     print("Performance over full test set:")
-    print("MSE: {:.3f} +/- {:.5f}".format(mse[0], mse[1]))
-    print("MAE: {:.3f} +/- {:.5f}".format(mae[0], mae[1]))
+    print("MSE: {:.5f} +/- {:.5f}".format(mse[0], mse[1]))
+    print("MAE: {:.5f} +/- {:.5f}".format(mae[0], mae[1]))
 
     # plot predictions and credible intervals for wells in the test set
     wells = list(set(df_test[well_variable]))
@@ -228,8 +228,8 @@ if __name__ == "__main__":
         x_test, y_test = unpack_dataset(test_loader)
         mse, mae = model.evaluate_performance(test_loader, B=100)
         print("Performance metrics for well {}".format(well))
-        print("MSE: {:.3f} +/- {:.3f}".format(mse[0], mse[1]))
-        print("MAE: {:.3f} +/- {:.3f}".format(mae[0], mae[1]))
+        print("MSE: {:.5f} +/- {:.5f}".format(mse[0], mse[1]))
+        print("MAE: {:.5f} +/- {:.5f}".format(mae[0], mae[1]))
 
         mean_predictions, var_epistemic, var_aleatoric, var_total = model.aleatoric_epistemic_variance(test_loader, B=100)
         lower_ci_e, upper_ci_e = credible_interval(mean_predictions, var_epistemic, std_multiplier=2)
