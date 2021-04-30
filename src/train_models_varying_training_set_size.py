@@ -33,16 +33,19 @@ if __name__ == "__main__":
     hidden_dim = 100
     output_dim = 1
     batch_size = 100
-    dropout_rate = 0.50
+    dropout_rate = 0.30
     # Choose model type to train
-    heteroscedastic = False
+    heteroscedastic = True
     mcdropout = False
 
     # iterate over fractions of full training dataset
-    fractions = np.linspace(0.10, 0.90, num=9)
+    fractions = np.linspace(0.10, 1.0, num=10)
     for f in fractions:
         # create training dataset from df_train
-        training_df = df_train.sample(frac=f)
+        if f == 1.0:
+            training_df = df_train
+        else:
+            training_df = df_train.sample(frac=f)
 
         training_set = create_torch_dataset(training_df, target_variable, explanatory_variables)
         N = len(training_set)
