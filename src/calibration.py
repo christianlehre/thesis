@@ -33,11 +33,11 @@ if __name__ == "__main__":
     batch_size = 100
     N = len(training_set)
     M = int(N / batch_size)  # number of mini-batches
-    dropout_rate = 0.10
+    dropout_rate = 0.50
     # Choose model to extract calibration curves from
     heteroscedastic = True
     mcdropout = False
-    epistemic = True
+    epistemic = False
 
     if mcdropout:
         training_configuration = "mcdropout_"
@@ -128,13 +128,13 @@ if __name__ == "__main__":
         plt.grid()
         plt.tight_layout()
 
-        if epistemic:
-            plt.savefig(
-                "./../../Figures/{}/{}/Calibration/Epistemic/well{}.pdf".format(model_type.replace(" ", ""), title,
-                                                                      well.replace("/", "")))
-        else:
-            plt.savefig(
-                "./../../Figures/{}/{}/Calibration/well{}.pdf".format(model_type.replace(" ", ""), title, well.replace("/", "")))
+        #if epistemic:
+        #    plt.savefig(
+        #        "./../../Figures/{}/{}/Calibration/Epistemic/well{}.pdf".format(model_type.replace(" ", ""), title,
+        #                                                              well.replace("/", "")))
+        #else:
+        #    plt.savefig(
+        #        "./../../Figures/{}/{}/Calibration/well{}.pdf".format(model_type.replace(" ", ""), title, well.replace("/", "")))
 
     mean_coverage = np.mean(coverages, axis=0)
     var_coverage = np.std(coverages, axis=0) ** 2
@@ -154,13 +154,15 @@ if __name__ == "__main__":
     plt.xlabel("Coverage probability", fontsize=20)
     plt.xticks(significance_levels, fontsize=16, rotation=45)
     plt.yticks(significance_levels, fontsize=16, rotation=25)
-    plt.legend(fontsize=16)
+    plt.ylim([0, 1.2])
+    plt.xlim([0.10, 0.99])
+    plt.legend(loc="upper left", fontsize=16)
     plt.grid()
     plt.tight_layout()
 
-    if epistemic:
-        plt.savefig("./../../Figures/{}/{}/Calibration/Epistemic/average_coverage.pdf".format(model_type.replace(" ", ""), title))
-    else:
-        plt.savefig("./../../Figures/{}/{}/Calibration/average_coverage.pdf".format(model_type.replace(" ", ""), title))
+    #if epistemic:
+    #    plt.savefig("./../../Figures/{}/{}/Calibration/Epistemic/average_coverage.pdf".format(model_type.replace(" ", ""), title))
+    #else:
+    #    plt.savefig("./../../Figures/{}/{}/Calibration/average_coverage.pdf".format(model_type.replace(" ", ""), title))
 
     plt.show()
