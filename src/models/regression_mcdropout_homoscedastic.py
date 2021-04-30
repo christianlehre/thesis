@@ -6,50 +6,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from src.dataloader.dataloader import Dataloader
-
-
-def create_torch_dataset(df, target, predictors):
-    """
-    Create a torch dataset based on a dataframe, target variable and predictors
-
-    :param df: pandas dataframe containing the dataset
-    :param target: target variable (string)
-    :param predictors: explanatory variables/predictors (list of strings)
-    :return: torch dataset
-    """
-    y = df[target]
-    y = torch.tensor(y.values, dtype=torch.float32).view(-1, 1)
-    x = df[predictors]
-    x = torch.tensor(x.values, dtype=torch.float32)
-
-    dataset = torch.utils.data.TensorDataset(x, y)
-    return dataset
-
-
-def unpack_dataset(dataloader_object):
-    for x, y in dataloader_object:
-        x, y = x, y
-    return x, y
-
-
-def credible_interval(mean, variance, std_multiplier):
-    upper_ci = [m + std_multiplier*np.sqrt(v) for m, v in zip(mean, variance)]
-    lower_ci = [m - std_multiplier*np.sqrt(v) for m, v in zip(mean, variance) ]
-
-    return lower_ci, upper_ci
-
-
-def coverage_probability(test_loader, lower_ci, upper_ci):
-    _, y_test = unpack_dataset(test_loader)
-    num_samples = len(y_test)
-    num_samples_inside_ci = 0
-
-    for i in range(num_samples):
-        if upper_ci[i] > y_test[i] > lower_ci[i]:
-            num_samples_inside_ci += 1
-    coverage = num_samples_inside_ci / num_samples
-
-    return coverage
+from src.utils import *
 
 
 class MCDropoutHomoscedastic(nn.Module):
@@ -275,7 +232,7 @@ if __name__ == "__main__":
         mean_predictions, var_epistemic, var_aleatoric, var_total = model.aleatoric_epistemic_variance(test_loader, B=100)
         lower_ci_e, upper_ci_e = credible_interval(mean_predictions, var_epistemic, std_multiplier=2)
         lower_ci_t, upper_ci_t = credible_interval(mean_predictions, var_total, std_multiplier=2)
-        empirical_coverage = coverage_probability(test_loader, lower_ci_t, upper_ci_t)
+        empirical_coverage = coverage_probability(y_test, lower_ci_t, upper_ci_t)
         depths = df_single_well["DEPTH"]
 
         plt.figure(figsize=(8, 12))
@@ -286,8 +243,8 @@ if __name__ == "__main__":
         plt.yticks(fontsize=16)
         plt.plot(y_test, depths, "-", label="True")
         plt.plot(mean_predictions, depths, label="Prediction")
-        plt.fill_betweenx(depths, lower_ci_t, upper_ci_t, color="green", alpha=0.2, label="95% CI total")
-        plt.fill_betweenx(depths, lower_ci_e, upper_ci_e, color="red", alpha=0.2, label="95% CI epistemic")
+        plt.fill_betweenx(depths, lower_ci_t, upper_ci_t, color="green", alpha=0.2, label=r"95\% CI total")
+        plt.fill_betweenx(depths, lower_ci_e, upper_ci_e, color="red", alpha=0.2, label=r"95\% CI epistemic")
         plt.ylim([depths.values[-1], depths.values[0]])
         plt.legend(loc="best", fontsize=12)
         # set x-lim for different wells:

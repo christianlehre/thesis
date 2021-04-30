@@ -69,7 +69,7 @@ def coverage_probability(y_test, lower_ci, upper_ci):
     return coverage
 
 
-def set_size(width, fraction=1):
+def set_size(width, prediction_curves, fraction=1):
     """Set figure dimensions to avoid scaling in LaTeX.
 
     Parameters
@@ -96,8 +96,11 @@ def set_size(width, fraction=1):
 
     # Figure width in inches
     fig_width_in = fig_width_pt * inches_per_pt
-    # Figure height in inches
-    fig_height_in = fig_width_in * golden_ratio
+    if prediction_curves:
+        fig_height_in = fig_width_in*1.5
+    else:
+        # Figure height in inches
+        fig_height_in = fig_width_in * golden_ratio
 
     fig_dim = (fig_width_in, fig_height_in)
 
