@@ -94,6 +94,7 @@ def plot_nested_dict(dictionary):
     plt.yticks(fontsize=16)
     plt.xlabel("Fraction of training set", fontsize=20)
     plt.ylabel("Epistemic uncertainty", fontsize=20)
+    plt.ylim([0, 0.6])
     plt.title("Epistemic uncertainty for varying size of training set", fontsize=24)
     plt.legend(fontsize=16)
 
@@ -121,7 +122,7 @@ if __name__ == "__main__":
     batch_size = 100
     N = len(training_set)
     M = int(N / batch_size)  # number of mini-batches
-    dropout_rate = 0.50
+    dropout_rate = 0.10
 
     dataloader = Dataloader(training_set=training_set, validation_set=validation_set,
                             test_set=test_set, batch_size=batch_size)
@@ -130,7 +131,7 @@ if __name__ == "__main__":
     path_to_models = "./data/models/regression/varying_training_set_size/dropout"+str(dropout_rate).replace(".", "")
     path_to_dictionary = "./data/epistemic_uncertainty/dropout_"+str(dropout_rate).replace(".","")+"0_epistemic_uncertainty_varying_training_set_size.txt"
 
-    create_dict = True
+    create_dict = False
 
     if create_dict:
         uncertainty_dict = nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, N, M, dropout_rate, path_to_models)
@@ -156,5 +157,5 @@ if __name__ == "__main__":
 
     plot_nested_dict(dict_to_plot)
     plt.tight_layout()
-    plt.savefig("../../Figures/epistemic_uncertainty_varying_training_set_size.pdf")
+    plt.savefig("../../Figures/dropout_"+str(dropout_rate).replace(".", "")+"0_epistemic_uncertainty_varying_training_set_size.pdf")
     plt.show()
