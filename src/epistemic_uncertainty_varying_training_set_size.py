@@ -28,17 +28,19 @@ def nested_dictionary(test_loader,input_dim, hidden_dim, output_dim, N, M, dropo
             if model_path.startswith("mcdropout_homoscedastic"):
                 model = MCDropoutHomoscedastic(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, N=N,
                                                M=M, dropout_rate=dropout_rate)
-                model_type = "mcdropout_homoscedastic"
+                model_type = "MC Dropout Homoscedastic"
             elif model_path.startswith("mcdropout_heteroscedastic"):
                 model = MCDropoutHeteroscedastic(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, N=N,
                                                  M=M, dropout_rate=dropout_rate)
-                model_type = "mcdropout_heteroscedastic"
+                model_type = "MC Dropout Heteroscedastic"
             elif model_path.startswith("sgvb_homoscedastic"):
-                model = SGVBHomoscedastic(in_size=input_dim, hidden_size=hidden_dim, out_size=output_dim, n_batches=M)
-                model_type = "sgvb_homoscedastic"
+                model = SGVBHomoscedastic(in_size=input_dim, hidden_size=hidden_dim, out_size=output_dim, n_batches=M,
+                                          dropout_rate=dropout_rate)
+                model_type = "SGVB Homoscedastic"
             else:
-                model = SGVBHeteroscedastic(in_size=input_dim, hidden_size=hidden_dim, out_size=output_dim, n_batches=M)
-                model_type = "sgvb_heteroscedastic"
+                model = SGVBHeteroscedastic(in_size=input_dim, hidden_size=hidden_dim, out_size=output_dim, n_batches=M,
+                                            dropout_rate=dropout_rate)
+                model_type = "SGVB Heteroscedastic"
 
             path_to_model = os.path.join(path_to_models_with_same_training_sets, model_path)
 
@@ -47,7 +49,7 @@ def nested_dictionary(test_loader,input_dim, hidden_dim, output_dim, N, M, dropo
 
             model.eval()
             for m in model.modules():
-                if m.__class__.__name__.startswith("Dropout") and model_type.startswith("mcdropout"):
+                if m.__class__.__name__.startswith("Dropout") and model_type.startswith("MC"):
                     m.train()
                 else:
                     m.eval()
@@ -87,11 +89,12 @@ def plot_nested_dict(dictionary):
     for model in inner_keys:
         y_axis_values = [v[model] for v in dictionary.values()]
 
-        plt.plot(x_axis_values, y_axis_values, label=model.replace("_", " ").title(), linewidth=3)
+        plt.plot(x_axis_values, y_axis_values, label=model, linewidth=3)
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     plt.xlabel("Fraction of training set", fontsize=20)
     plt.ylabel("Epistemic uncertainty", fontsize=20)
+    plt.ylim([0, 0.6])
     plt.title("Epistemic uncertainty for varying size of training set", fontsize=24)
     plt.legend(fontsize=16)
 
@@ -128,7 +131,7 @@ if __name__ == "__main__":
     path_to_models = "./data/models/regression/varying_training_set_size/dropout"+str(dropout_rate).replace(".", "")
     path_to_dictionary = "./data/epistemic_uncertainty/dropout_"+str(dropout_rate).replace(".","")+"0_epistemic_uncertainty_varying_training_set_size.txt"
 
-    create_dict = True
+    create_dict = False
 
     if create_dict:
         uncertainty_dict = nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, N, M, dropout_rate, path_to_models)
@@ -154,5 +157,5 @@ if __name__ == "__main__":
 
     plot_nested_dict(dict_to_plot)
     plt.tight_layout()
-    plt.savefig("../../Figures/epistemic_uncertainty_varying_training_set_size.pdf")
+    plt.savefig("../../Figures/dropout_"+str(dropout_rate).replace(".", "")+"0_epistemic_uncertainty_varying_training_set_size.pdf")
     plt.show()

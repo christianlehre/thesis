@@ -6,50 +6,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from src.dataloader.dataloader import Dataloader
-
-
-def create_torch_dataset(df, target, predictors):
-    """
-    Create a torch dataset based on a dataframe, target variable and predictors
-
-    :param df: pandas dataframe containing the dataset
-    :param target: target variable (string)
-    :param predictors: explanatory variables/predictors (list of strings)
-    :return: torch dataset
-    """
-    y = df[target]
-    y = torch.tensor(y.values, dtype=torch.float32).view(-1, 1)
-    x = df[predictors]
-    x = torch.tensor(x.values, dtype=torch.float32)
-
-    dataset = torch.utils.data.TensorDataset(x, y)
-    return dataset
-
-
-def unpack_dataset(dataloader_object):
-    for x, y in dataloader_object:
-        x, y = x, y
-    return x, y
-
-
-def credible_interval(mean, variance, std_multiplier):
-    upper_ci = [m + std_multiplier*np.sqrt(v) for m, v in zip(mean, variance)]
-    lower_ci = [m - std_multiplier*np.sqrt(v) for m, v in zip(mean, variance) ]
-
-    return lower_ci, upper_ci
-
-
-def coverage_probability(test_loader, lower_ci, upper_ci):
-    _, y_test = unpack_dataset(test_loader)
-    num_samples = len(y_test)
-    num_samples_inside_ci = 0
-
-    for i in range(num_samples):
-        if upper_ci[i] > y_test[i] > lower_ci[i]:
-            num_samples_inside_ci += 1
-    coverage = num_samples_inside_ci / num_samples
-
-    return coverage
+from src.utils import *
 
 
 class MCDropoutHomoscedastic(nn.Module):
@@ -200,7 +157,7 @@ if __name__ == "__main__":
     batch_size = 100
     N = len(training_set)
     M = int(N/batch_size) # number of mini-batches
-    dropout_rate = 0.50
+    dropout_rate = 0.10
 
 
     dataloader = Dataloader(training_set=training_set, validation_set=validation_set,
@@ -222,7 +179,7 @@ if __name__ == "__main__":
     path_to_loss = os.path.join(path_to_losses, training_configuration)
     path_to_loss += ".npz"
 
-    train = True
+    train = False
     if train:
         model.train(mode=True)
         print("Training MC Dropout model (homoscedastic)...")
@@ -240,16 +197,24 @@ if __name__ == "__main__":
             training_loss = data["training_loss"]
             validation_loss = data["validation_loss"]
             training_time = data["training_time"]
+    model.train(mode=True)
 
     # loss curves
     plt.figure()
     plt.plot(range(model.num_epochs), training_loss, label="training")
     plt.plot(range(model.num_epochs), validation_loss, label="validation")
-    plt.title("Loss curves, training time {:.2f}s".format(training_time))
-    plt.ylabel("Negative log-likelihood")
-    plt.xlabel("Epoch")
+    plt.title("Loss curves - Homoscedastic MC Dropout".format(training_time), fontsize=18)
+    plt.ylabel("Negative log-likelihood", fontsize=16)
+    plt.xlabel("Epoch", fontsize=16)
+    plt.legend(fontsize=14)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
 
-    """
+    mse, mae = model.evaluate_performance(test_loader, B=100)
+    print("Performance over full test set:")
+    print("MSE: {:.5f} +/- {:.5f}".format(mse[0], mse[1]))
+    print("MAE: {:.5f} +/- {:.5f}".format(mae[0], mae[1]))
+
     # Predictions and credible intervals for wells in test set
     wells = list(set(df_test[well_variable]))
     for well in wells:
@@ -261,24 +226,40 @@ if __name__ == "__main__":
         x_test, y_test = unpack_dataset(test_loader)
         mse, mae = model.evaluate_performance(test_loader, B=100)
         print("Performance metrics for well {}".format(well))
-        print("MSE: {:.3f} +/- {:.3f}".format(mse[0], mse[1]))
-        print("MAE: {:.3f} +/- {:.3f}".format(mae[0], mae[1]))
+        print("MSE: {:.5f} +/- {:.5f}".format(mse[0], mse[1]))
+        print("MAE: {:.5f} +/- {:.5f}".format(mae[0], mae[1]))
 
         mean_predictions, var_epistemic, var_aleatoric, var_total = model.aleatoric_epistemic_variance(test_loader, B=100)
         lower_ci_e, upper_ci_e = credible_interval(mean_predictions, var_epistemic, std_multiplier=2)
         lower_ci_t, upper_ci_t = credible_interval(mean_predictions, var_total, std_multiplier=2)
-        empirical_coverage = coverage_probability(test_loader, lower_ci_t, upper_ci_t)
+        empirical_coverage = coverage_probability(y_test, lower_ci_t, upper_ci_t)
         depths = df_single_well["DEPTH"]
 
-        plt.figure(figsize=(6, 10))
-        plt.title("Well: {}. Coverage probability {:.2f}".format(well, 100*empirical_coverage))
-        plt.ylabel("Depth")
-        plt.xlabel("ACS")
-        plt.plot(y_test, depths, "-", label="true")
-        plt.plot(mean_predictions, depths, label="predicted")
-        plt.fill_betweenx(depths, lower_ci_t, upper_ci_t, color="green", alpha=0.2, label="95% CI total")
-        plt.fill_betweenx(depths, lower_ci_e, upper_ci_e, color="red", alpha=0.2, label="95% CI epistemic")
+        plt.figure(figsize=(8, 12))
+        plt.title("Well: {}. Coverage probability {:.2f}%".format(well, 100*empirical_coverage), fontsize=18)
+        plt.ylabel("Depth", fontsize=16)
+        plt.xlabel("ACS", fontsize=16)
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
+        plt.plot(y_test, depths, "-", label="True")
+        plt.plot(mean_predictions, depths, label="Prediction")
+        plt.fill_betweenx(depths, lower_ci_t, upper_ci_t, color="green", alpha=0.2, label=r"95\% CI total")
+        plt.fill_betweenx(depths, lower_ci_e, upper_ci_e, color="red", alpha=0.2, label=r"95\% CI epistemic")
         plt.ylim([depths.values[-1], depths.values[0]])
-        plt.legend(loc="best")
+        plt.legend(loc="best", fontsize=12)
+        # set x-lim for different wells:
+        if well == "25/4-10 S":
+            plt.xlim([-5, 7])
+        elif well == "25/7-6":
+            plt.xlim([-4, 4])
+        elif well == "30/6-26" or well == "30/8-5 T2":
+            plt.xlim([-5, 5])
+        elif well == "30/11-10":
+            plt.xlim([-7, 7])
+        elif well == "30/11-7":
+            plt.xlim([-7, 9])
+        elif well == "30/11-9 ST2":
+            plt.xlim([-3, 7])
+        else:
+            plt.xlim([-5, 11])
     plt.show()
-    """

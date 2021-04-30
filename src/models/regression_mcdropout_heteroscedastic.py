@@ -180,7 +180,7 @@ if __name__ == "__main__":
     path_to_loss = os.path.join(path_to_losses, training_configuration)
     path_to_loss += ".npz"
 
-    train = True
+    train = False
     if train:
         model.train(mode=True)  # keep this on during test time, to obtain probabilistic behaviour
         print("Training MC Dropout model (heteroscedastic)...")
@@ -205,9 +205,17 @@ if __name__ == "__main__":
     plt.figure()
     plt.plot(range(model.num_epochs), training_loss, label="training")
     plt.plot(range(model.num_epochs), validation_loss, label="validation")
-    plt.title("Loss curves, training time {:.2f}s".format(training_time))
-    plt.ylabel("Negative log-likelihood")
-    plt.xlabel("Epoch")
+    plt.title("Loss curves - Heteroscedastic MC Dropout", fontsize=18)
+    plt.ylabel("Negative log-likelihood", fontsize=16)
+    plt.xlabel("Epoch", fontsize=16)
+    plt.legend(fontsize=14)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+
+    mse, mae = model.evaluate_performance(test_loader, B=100)
+    print("Performance over full test set:")
+    print("MSE: {:.5f} +/- {:.5f}".format(mse[0], mse[1]))
+    print("MAE: {:.5f} +/- {:.5f}".format(mae[0], mae[1]))
 
     # plot predictions and credible intervals for wells in the test set
     wells = list(set(df_test[well_variable]))
@@ -220,8 +228,8 @@ if __name__ == "__main__":
         x_test, y_test = unpack_dataset(test_loader)
         mse, mae = model.evaluate_performance(test_loader, B=100)
         print("Performance metrics for well {}".format(well))
-        print("MSE: {:.3f} +/- {:.3f}".format(mse[0], mse[1]))
-        print("MAE: {:.3f} +/- {:.3f}".format(mae[0], mae[1]))
+        print("MSE: {:.5f} +/- {:.5f}".format(mse[0], mse[1]))
+        print("MAE: {:.5f} +/- {:.5f}".format(mae[0], mae[1]))
 
         mean_predictions, var_epistemic, var_aleatoric, var_total = model.aleatoric_epistemic_variance(test_loader, B=100)
         lower_ci_e, upper_ci_e = credible_interval(mean_predictions, var_epistemic, std_multiplier=2)
@@ -229,17 +237,33 @@ if __name__ == "__main__":
         empirical_coverage = coverage_probability(y_test, lower_ci_t, upper_ci_t)
 
         depths = df_test_single_well["DEPTH"]
-        plt.figure(figsize=(6, 10))
-        plt.title("Well: {}. Coverage probability: {:.2f}".format(well, 100*empirical_coverage))
-        plt.ylabel("Depth")
-        plt.xlabel("ACS")
-        plt.plot(y_test, depths, "-", label="true")
-        plt.plot(mean_predictions, depths, "-", label="predicted")
-        plt.fill_betweenx(depths, lower_ci_t, upper_ci_t, color="green", alpha=0.2, label="95% CI, total")
-        plt.fill_betweenx(depths, lower_ci_e, upper_ci_e, color="red", alpha=0.2, label="95% CI, epistemic")
+        plt.figure(figsize=(8, 12))
+        plt.title("Well: {}. Coverage probability {:.2f}%".format(well, 100*empirical_coverage), fontsize=18)
+        plt.ylabel("Depth", fontsize=16)
+        plt.xlabel("ACS", fontsize=16)
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
+        plt.plot(y_test, depths, "-", label="True")
+        plt.plot(mean_predictions, depths, "-", label="Prediction")
+        plt.fill_betweenx(depths, lower_ci_t, upper_ci_t, color="green", alpha=0.2, label="95% CI total")
+        plt.fill_betweenx(depths, lower_ci_e, upper_ci_e, color="red", alpha=0.2, label="95% CI epistemic")
         plt.ylim([depths.values[-1], depths.values[0]])
-        plt.legend(loc="best")
-
+        plt.legend(loc="best", fontsize=12)
+        # set x-lim for different wells:
+        if well == "25/4-10 S":
+            plt.xlim([-5, 7])
+        elif well == "25/7-6":
+            plt.xlim([-4, 4])
+        elif well == "30/6-26" or well == "30/8-5 T2":
+            plt.xlim([-5, 5])
+        elif well == "30/11-10":
+            plt.xlim([-7, 7])
+        elif well == "30/11-7":
+            plt.xlim([-7, 9])
+        elif well == "30/11-9 ST2":
+            plt.xlim([-3, 7])
+        else:
+            plt.xlim([-5, 11])
     plt.show()
 
 

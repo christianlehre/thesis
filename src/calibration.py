@@ -54,7 +54,7 @@ if __name__ == "__main__":
                                              output_dim=output_dim, N=N, M=M, dropout_rate=dropout_rate)
         else:
             model = SGVBHeteroscedastic(in_size=input_dim, hidden_size=hidden_dim,
-                                        out_size=output_dim, n_batches=M)
+                                        out_size=output_dim, n_batches=M, dropout_rate=dropout_rate)
     else:
         title = "Homoscedastic"
         training_configuration += title.lower() + "_"
@@ -63,9 +63,8 @@ if __name__ == "__main__":
                                            output_dim=output_dim, N=N, M=M, dropout_rate=dropout_rate)
         else:
             model = SGVBHomoscedastic(in_size=input_dim, hidden_size=hidden_dim,
-                                      out_size=output_dim, n_batches=M)
+                                      out_size=output_dim, n_batches=M, dropout_rate=dropout_rate)
 
-    #TODO: include dropoutrate in path to mc dropout models
     training_configuration +="dropout_"+str(model.dropout_rate)+"_lr_" + str(model.lr) + "_numepochs_" + str(
         model.num_epochs) + "_hiddenunits_" \
                               + str(hidden_dim) + "_hiddenlayers_2" + "_batch_size_" + str(batch_size)
@@ -155,7 +154,9 @@ if __name__ == "__main__":
     plt.xlabel("Coverage probability", fontsize=20)
     plt.xticks(significance_levels, fontsize=16, rotation=45)
     plt.yticks(significance_levels, fontsize=16, rotation=25)
-    plt.legend(fontsize=16)
+    plt.ylim([0, 1.2])
+    plt.xlim([0.10, 0.99])
+    plt.legend(loc="upper left", fontsize=16)
     plt.grid()
     plt.tight_layout()
 
