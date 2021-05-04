@@ -155,7 +155,6 @@ def plot_nested_dict(dictionary):
     plt.yticks(fontsize=16)
     plt.xlabel("Model complexity", fontsize=20)
     plt.ylabel("Epistemic uncertainty", fontsize=20)
-    #plt.ylim([0, 0.6])
     plt.title("Epistemic uncertainty for varying model complexity", fontsize=24)
     plt.legend(fontsize=16)
 
