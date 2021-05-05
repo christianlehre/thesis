@@ -55,14 +55,29 @@ class RegressionModel(nn.Module):
     :dropout_rate: dropout rate, e.g 0.10
     :learning_rate: learning rate for the Adam optimizer, e.g. 1e-3
     """
-    def __init__(self, layers, num_epochs, batch_size, dropout_rate, learning_rate):
+    def __init__(self, layers, num_epochs, batch_size, N, dropout_rate, learning_rate, heteroscedastic):
         super(RegressionModel, self).__init__()
+        self.heteroscedastic = heteroscedastic
+        self.dropout_rate = dropout_rate
+        self.dropout = nn.Dropout(p=self.dropout_rate)
+        self.relu = nn.ReLU()
+
+        # set weight decay for non-output and output layer
+        self.precision = 1.0
+        self.length_scale = 1.0
+        self.N = N
+        self.reg_dropout = (1 - self.dropout_rate) * self.length_scale ** 2 / (2 * self.N * self.precision)
+        self.reg_final = self.length_scale ** 2 / (2 * self.N * self.precision)
+
         self.layers = layers
         linear_layers = []
+        bn_layers = []
+        reg_list = []
         for i in range(len(layers)-1):
             n_in = self.layers[i]
             n_out = self.layers[i+1]
             layer = torch.nn.Linear(n_in, n_out)
+            bn_layer = torch.nn.BatchNorm1d(num_features=n_out, track_running_stats=False)
 
             # Initialize weights (He) and biases (0)
             a = 1 if i == 0 else 2
@@ -70,21 +85,44 @@ class RegressionModel(nn.Module):
             layer.bias.data = torch.zeros(n_out)
 
             linear_layers.append(layer)
+            bn_layers.append(bn_layer)
+
+            reg_dict_linear = {}
+            bn_dict = {}
+            reg_dict_linear['params'] = layer.parameters()
+            reg_dict_linear['weight_decay'] = self.reg_dropout if i < (len(layers)-1) else self.reg_final
+            bn_dict['params'] = bn_layer.parameters()
+
+            reg_list.append(reg_dict_linear)
+            reg_list.append(bn_dict)
 
         self.linear_layers = torch.nn.ModuleList(linear_layers)
+        self.bn_layers = bn_layers
 
-        self.dropout_rate = dropout_rate
-        self.dropout = nn.Dropout(p=self.dropout_rate)
-        self.relu = nn.ReLU()
+        if heteroscedastic:
+            self.log_var = nn.Linear(n_in, n_out)
+            self.log_var.weight.data = torch.rand((n_out, n_in)) * np.sqrt(a / n_in)
+            self.log_var.bias.data = torch.zeros(n_out)
+            reg_list.append({'params': self.log_var.parameters(), 'weight_decay': self.reg_final})
+
+            self.forward = self.forward_heteroscedastic
+            self.loss = self.loss_heteroscedastic
+        else:
+            self.log_var = nn.Parameter(torch.FloatTensor(1, ).normal_(mean=-2.5, std=0.001), requires_grad=True)
+            reg_list.append({'params': self.log_var, 'weight_decay': self.reg_final})
+
+            self.forward = self.forward_homoscedastic
+            self.loss = self.loss_homoscedastic
+
 
         self.batch_size = batch_size
         self.num_epochs = num_epochs
         self.learning_rate = learning_rate
 
         self.criterion = nn.MSELoss(reduction='mean')
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        self.optimizer = torch.optim.Adam(reg_list, lr=self.learning_rate)
 
-    def forward(self, input):
+    def forward_homoscedastic(self, input):
         """
         Forward pass of the model, calculating the output of the model
 
@@ -92,13 +130,39 @@ class RegressionModel(nn.Module):
         :return: output of the neural network, dim = (1,number of samples in input)
         """
         x = input
-        for l in self.linear_layers[:-1]:
+        for i, l in enumerate(self.linear_layers[:-1]):
+            bn_layer = self.bn_layers[i]
             x = l(x)
-            x = self.dropout(x)
+            x = bn_layer(x)
             x = self.relu(x)
+            x = self.dropout(x)
         output_layer = self.linear_layers[-1]
         x = output_layer(x)
         return x
+
+    def loss_homoscedastic(self, y, y_pred):
+        neg_loglik = 0.5*len(y)*(np.log(2*np.pi) + self.log_var) + 0.5*torch.div(torch.pow(y - y_pred, 2),
+                                                                                 torch.exp(self.log_var)).sum()
+        return neg_loglik/self.precision
+
+    def forward_heteroscedastic(self, input):
+        x = input
+        for i, l in enumerate(self.linear_layers[:-1]):
+            bn_layer = self.bn_layers[i]
+            x = l(x)
+            x = bn_layer(x)
+            x = self.relu(x)
+            x = self.dropout(x)
+        output_layer = self.linear_layers[-1]
+        y_hat = output_layer(x)
+        log_var = self.log_var(x)
+        return y_hat, log_var
+
+    def loss_heteroscedastic(self, y, y_pred, log_var):
+        neg_loglik = 0.5 * len(y) * np.log(2 * np.pi) + 0.5 * (log_var.sum() +
+                                                               torch.div(torch.pow(y - y_pred, 2),
+                                                                         torch.exp(log_var)).sum())
+        return neg_loglik
 
     def train_validate_model(self, train_loader, val_loader):
         """
@@ -116,42 +180,28 @@ class RegressionModel(nn.Module):
             for x_train, y_train in train_loader:
                 x_train = x_train.requires_grad_()
                 self.optimizer.zero_grad()
-                outputs = self.forward(x_train)
-                loss = self.criterion(outputs, y_train)
+                if self.heteroscedastic:
+                    outputs, log_var = self.forward(x_train)
+                    loss = self.loss(y_train, outputs, log_var)
+                else:
+                    outputs = self.forward(x_train)
+                    loss = self.loss(y_train, outputs)
                 loss.backward()
                 self.optimizer.step()
 
             train_loss.append(loss.item())
 
             for x_val, y_val in val_loader:
-                outputs_val = self.forward(x_val)
-                loss_val = self.criterion(outputs_val, y_val)
+                if self.heteroscedastic:
+                    outputs_val, log_var_val = self.forward(x_val)
+                    loss_val = self.loss(y_val, outputs_val, log_var_val)
+                else:
+                    outputs_val = self.forward(x_val)
+                    loss_val = self.loss(y_val, outputs_val)
             val_loss.append(loss_val.item())
-            print("Epoch {}; Train MSE: {},  Val MSE: {}".format(epoch, train_loss[epoch], val_loss[epoch]))
+            print("Epoch {}; Train NLL: {},  Val NLL: {}".format(epoch, train_loss[epoch], val_loss[epoch]))
 
         return train_loss, val_loss
-
-    def train_model(self, train_loader):
-        """
-        Train the model using the full training set, i.e. including the validation set
-
-        :param train_loader: torch dataloader object for the full training set, including the validation set
-        :return: list of training loss for each epoch
-        """
-        train_loss = []
-
-        for epoch in range(self.num_epochs):
-            for x_train, y_train in train_loader:
-                x_train = x_train.requires_grad_()
-                self.optimizer.zero_grad()
-                outputs = self.forward(x_train)
-                loss = self.criterion(outputs, y_train)
-                loss.backward()
-                self.optimizer.step()
-
-            train_loss.append(loss.item())
-            print("Epoch {}; Train MSE: {}".format(epoch, train_loss[epoch]))
-        return train_loss
 
     def evaluate_performance(self, test_loader):
         """
@@ -165,7 +215,12 @@ class RegressionModel(nn.Module):
         """
         for x, y in test_loader:
             x_test, y_test = x, y
-        predictions_test = self.forward(x_test).detach()
+        if self.heteroscedastic:
+            predictions, _ = self.forward(x_test)
+            predictions_test = predictions.detach()
+        else:
+            predictions_test = self.forward(x_test).detach()
+
         mse = torch.mean(torch.pow(predictions_test - y_test, 2))
         mse = mse.item()
         mae = torch.mean(torch.abs(predictions_test - y_test))
@@ -197,7 +252,11 @@ class RegressionModel(nn.Module):
             y_test = test_well_data["ACS"]
             y_test = torch.tensor(y_test.values, dtype=torch.float32).view(-1, 1)
 
-            predictions_test = self.forward(x_test).detach()
+            if self.heteroscedastic:
+                predictions, _ = self.forward(x_test)
+                predictions_test = predictions.detach()
+            else:
+                predictions_test = self.forward(x_test).detach()
 
             mse = torch.mean(torch.pow(predictions_test - y_test, 2))
             mae = torch.mean(torch.abs(predictions_test - y_test))
@@ -230,7 +289,11 @@ class RegressionModel(nn.Module):
             x_test_ = test_well_data[explanatory_variables]
             depths = x_test_["DEPTH"]
             x_test = torch.tensor(x_test_.values, dtype=torch.float32)
-            y_predictions = self.forward(x_test).detach().numpy()
+            if self.heteroscedastic:
+                predictions, _ = self.forward(x_test)
+                y_predictions = predictions.detach()
+            else:
+                y_predictions = self.forward(x_test).detach()
             y_test = test_well_data["ACS"]
 
             axs[ic].set_ylim(depths.values[-1], depths.values[0])
@@ -259,7 +322,12 @@ class RegressionModel(nn.Module):
             ratio_test = np.divide(np.array(ac_test), np.array(acs_test))
 
             x_test = torch.tensor(x_test.values, dtype=torch.float32)
-            acs_predictions = self.forward(x_test).detach().numpy()
+
+            if self.heteroscedastic:
+                predictions, _ = self.forward(x_test)
+                acs_predictions = predictions.detach().numpy()
+            else:
+                acs_predictions = self.forward(x_test).detach().numpy()
 
             ratio_predictions = np.divide(np.array(ac_test), np.array(acs_predictions[:, 0]))
 
@@ -302,16 +370,17 @@ if __name__ == "__main__":
     input_dim = len(explanatory_variables)
     hidden_dim = 100
     output_dim = 1
-    layers = [input_dim, hidden_dim, output_dim]
+    layers = [input_dim, hidden_dim, hidden_dim, output_dim]
 
     num_epochs = 10
     batch_size = 100
-    learning_rate = 1e-3
+    learning_rate = 1e-4
     dropout_rate = 0.10
+    N = len(training_set)
 
     # Initialize model object
     model = RegressionModel(layers=layers, num_epochs=num_epochs, batch_size=batch_size,
-                            dropout_rate=dropout_rate, learning_rate=learning_rate)
+                            N=N, dropout_rate=dropout_rate, learning_rate=learning_rate, heteroscedastic=False)
 
     # Initialize dataloader object
     dataloader = Dataloader(training_set=training_set, validation_set=validation_set,
@@ -325,53 +394,24 @@ if __name__ == "__main__":
     train = False
     grid_search = False
 
+    if model.heteroscedastic:
+        path_to_model = "./data/models/regression/regression_deterministic_heteroscedastic.pt"
+        path_to_loss = "./data/loss/regression/regession_deterministic_heteroscedastic.npz"
+    else:
+        path_to_model = "./data/models/regression/regression_deterministic_homoscedastic.pt"
+        path_to_loss = "./data/loss/regression/regession_deterministic_homoscedastic.npz"
+
     if train:
         print("Training model on training set (excluding validation set)...")
         start_time = time.time()
         model.train()
-        train_loss, val_loss = model.train_validate_model(training_loader, validation_loader)
+        training_loss, validation_loss = model.train_validate_model(training_loader, validation_loader)
         model.eval()
         end_time = time.time()
-        print("Training time: {:.2f} s".format(end_time - start_time))
-
-        mse, mae, mape = model.evaluate_performance(test_loader)
-        print("\nPerformance on test set: ")
-        print("MSE: {:.3f}".format(mse))
-        print("MAE: {:.3f}".format(mae))
-        print("MAPE: {:.3f}%".format(mape))
-
-        plt.figure()
-        plt.title("Loss curves")
-        plt.xlabel("Epoch")
-        plt.ylabel("MSE")
-        plt.plot(range(model.num_epochs), train_loss, label="train loss")
-        plt.plot(range(model.num_epochs), val_loss, label="validation loss")
-        plt.legend()
-
-        print("Training model on full training set (train + val)...")
-        # Initialize new model object
-        model = RegressionModel(layers=layers, num_epochs=num_epochs, batch_size=batch_size,
-                                dropout_rate=dropout_rate, learning_rate=learning_rate)
-        model.train()
-        start_time = time.time()
-        train_loss = model.train_model(training_loader_full)
-        end_time = time.time()
-        model.eval()
-        print("Training time: {:.2f} s".format(end_time - start_time))
-        torch.save(model.state_dict(), "./data/models/regression/regression_deterministic.pt")
-
-        mse, mae, mape = model.evaluate_performance(test_loader)
-        print("\nPerformance on test set: ")
-        print("MSE: {:.3f}".format(mse))
-        print("MAE: {:.3f}".format(mae))
-        print("MAPE: {:.3f}%".format(mape))
-
-        plt.figure()
-        plt.title("Loss curve for full training set")
-        plt.xlabel("Epoch")
-        plt.ylabel("MSE")
-        plt.plot(range(model.num_epochs), train_loss, label="train loss")
-        plt.legend()
+        training_time = end_time - start_time
+        print("Training time: {:.2f} s".format(training_time))
+        torch.save(model.state_dict(), path_to_model)
+        np.savez(path_to_loss, training_loss=training_loss, validation_loss=validation_loss, training_time=training_time)
 
     elif grid_search:
         net_regr = NeuralNetRegressor(RegressionModel,
@@ -403,13 +443,27 @@ if __name__ == "__main__":
         print("Elapsed time: {} s".format(end_time_gs - start_time_gs))
 
     else:
-        model.load_state_dict(torch.load("./data/models/regression/regression_deterministic.pt"))
-        model.eval()
-        mse, mae, mape = model.evaluate_performance(test_loader)
-        print("Performance on full test set: ")
-        print("MSE: {:.3f}".format(mse))
-        print("MAE: {:.3f}".format(mae))
-        print("MAPE: {:.3f}%".format(mape))
+        model.load_state_dict(torch.load(path_to_model))
+        model.train(mode=False)
+
+        with np.load(path_to_loss) as data:
+            training_loss = data["training_loss"]
+            validation_loss = data["validation_loss"]
+            training_time = data["training_time"]
+
+    plt.figure()
+    plt.title("Loss curves, training time: {:.2f}s".format(training_time))
+    plt.xlabel("Epoch")
+    plt.ylabel("Negative Log-Likelihood")
+    plt.plot(range(model.num_epochs), training_loss, label="train loss")
+    plt.plot(range(model.num_epochs), validation_loss, label="validation loss")
+    plt.legend()
+
+    mse, mae, mape = model.evaluate_performance(test_loader)
+    print("Performance on full test set: ")
+    print("MSE: {:.5f}".format(mse))
+    print("MAE: {:.5f}".format(mae))
+    print("MAPE: {:.5f}%".format(mape))
 
     # well-wise performance
     performance_dict = model.wellwise_performance(df_test)
