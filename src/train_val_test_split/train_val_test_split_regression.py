@@ -10,7 +10,7 @@ def create_torch_dataset(df, target, predictors):
     y = df[target]
     y = torch.tensor(y.values, dtype=torch.float32).view(-1, 1)
     x = df[predictors]
-    x = torch.tensors(x.values, dtype=torch.float32).view(-1, 1)
+    x = torch.tensor(x.values, dtype=torch.float32).view(-1, 1)
 
     dataset = torch.utils.data.TensorDataset(x, y)
     return dataset
@@ -187,7 +187,7 @@ if __name__ == "__main__":
     data_folder = "./data"
     path_to_preprocessed_data = os.path.join(data_folder, preprocessed_data_fname)
     print(os.getcwd())
-    os.chdir("./..")
+    os.chdir("./../..")
     print(os.getcwd())
 
     test_size = 0.25
