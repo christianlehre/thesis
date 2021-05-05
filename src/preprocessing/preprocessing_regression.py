@@ -43,7 +43,7 @@ class Preprocessing:
 
     def scale_features_wellwise(self, df):
         new_df = df.copy(deep=True)
-        new_df.drop(["well_name", "DEPTH"], axis=1, inplace=True)
+        new_df.drop(["well_name", "DEPTH", "ACS"], axis=1, inplace=True)
         scaler = StandardScaler()
         wells = df['well_name'].unique()
         for well in wells:
@@ -51,6 +51,7 @@ class Preprocessing:
 
         new_df["DEPTH"] = df["DEPTH"]
         new_df['well_name'] = df['well_name'] # just for validating the scaling and splitting data further down the pipeline
+        new_df["ACS"] = df["ACS"]
         return new_df
 
     def validate_scaling(self, df):
@@ -129,7 +130,7 @@ class Preprocessing:
 
 if __name__ == "__main__":
     raw_data_fname = "raw_regression.csv"
-    preprocessed_data_fname = "preprocessed_regression.csv"
+    preprocessed_data_fname = "preprocessed_regression_without_scaled_response.csv"
     data_folder = "./data"
     path_to_raw_data = os.path.join(data_folder, raw_data_fname)
     path_to_preprocessed_data = os.path.join(data_folder, preprocessed_data_fname)
