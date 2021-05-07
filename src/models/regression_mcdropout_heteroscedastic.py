@@ -7,7 +7,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from src.dataloader.dataloader import Dataloader
 from src.utils import *
-
+from pickle import load
 
 class MCDropoutHeteroscedastic(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, N, M, dropout_rate):
@@ -140,8 +140,8 @@ if __name__ == "__main__":
     os.chdir("../..")
     print(os.getcwd())
 
-    df_train = pd.read_csv("./data/train_regression.csv", sep=";")
-    df_val = pd.read_csv("./data/val_regression.csv", sep=";")
+    df_train = pd.read_csv("./data/train_regression_scaled_response_wellwise.csv", sep=";")
+    df_val = pd.read_csv("./data/val_regression_scaled_response_wellwise.csv", sep=";")
     df_test = pd.read_csv("./data/test_regression.csv", sep=";")
 
     variables = df_train.columns.values
@@ -203,8 +203,11 @@ if __name__ == "__main__":
 
     # plot loss curves
     plt.figure()
-    plt.plot(range(model.num_epochs), training_loss, label="training")
-    plt.plot(range(model.num_epochs), validation_loss, label="validation")
+    epochs = range(model.num_epochs)
+    epochs = list(map(lambda x: x+1, epochs))
+    plt.xticks(epochs)
+    plt.plot(epochs, training_loss, label="training")
+    plt.plot(epochs, validation_loss, label="validation")
     plt.title("Loss curves - Heteroscedastic MC Dropout", fontsize=18)
     plt.ylabel("Negative log-likelihood", fontsize=16)
     plt.xlabel("Epoch", fontsize=16)
@@ -220,6 +223,8 @@ if __name__ == "__main__":
     # plot predictions and credible intervals for wells in the test set
     wells = list(set(df_test[well_variable]))
     for well in wells:
+        if well != "30/8-5 T2":
+            continue
         df_test_single_well = df_test[df_test[well_variable] == well]
         test_set = create_torch_dataset(df_test_single_well, target_variable, explanatory_variables)
         test_loader = torch.utils.data.DataLoader(dataset=test_set,
@@ -236,7 +241,50 @@ if __name__ == "__main__":
         lower_ci_t, upper_ci_t = credible_interval(mean_predictions, var_total, std_multiplier=2)
         empirical_coverage = coverage_probability(y_test, lower_ci_t, upper_ci_t)
 
+        # load scaler
+        well_name = well.replace("/","")
+        well_name = well_name.replace(" ", "")
+        path_to_scaler = "./data/models/scaler/well"+well_name+".pkl"
+        scaler = load(open(path_to_scaler, 'rb'))
+
+        # apply inverse scaler
+        y_test_stack = torch.stack((y_test, y_test, y_test,y_test, y_test, y_test,y_test, y_test, y_test), dim=1).squeeze()
+        y_test_stack = scaler.inverse_transform(y_test_stack)
+        y_test = y_test_stack[:, 0]
+
+        mean_predictions = torch.Tensor(mean_predictions).view(-1, 1)
+        mean_predictions_stack = torch.stack((mean_predictions, mean_predictions, mean_predictions, mean_predictions,
+                                              mean_predictions, mean_predictions, mean_predictions, mean_predictions,
+                                              mean_predictions), dim=1).squeeze()
+        mean_predictions_stack = scaler.inverse_transform(mean_predictions_stack)
+        mean_predictions = mean_predictions_stack[:, 0]
+
+        lower_ci_e = torch.Tensor(lower_ci_e).view(-1, 1)
+        lower_ci_e_stack = torch.stack((lower_ci_e, lower_ci_e, lower_ci_e, lower_ci_e, lower_ci_e, lower_ci_e,
+                                        lower_ci_e, lower_ci_e, lower_ci_e), dim=1).squeeze()
+        lower_ci_e_stack = scaler.inverse_transform(lower_ci_e_stack)
+        lower_ci_e = lower_ci_e_stack[:, 0]
+
+        upper_ci_e = torch.Tensor(upper_ci_e).view(-1, 1)
+        upper_ci_e_stack = torch.stack((upper_ci_e, upper_ci_e, upper_ci_e, upper_ci_e, upper_ci_e, upper_ci_e,
+                                        upper_ci_e, upper_ci_e, upper_ci_e), dim=1).squeeze()
+        upper_ci_e_stack = scaler.inverse_transform(upper_ci_e_stack)
+        upper_ci_e = upper_ci_e_stack[:, 0]
+
+        lower_ci_t = torch.Tensor(lower_ci_t).view(-1, 1)
+        lower_ci_t_stack = torch.stack((lower_ci_t, lower_ci_t, lower_ci_t, lower_ci_t, lower_ci_t, lower_ci_t,
+                                        lower_ci_t, lower_ci_t, lower_ci_t), dim=1).squeeze()
+        lower_ci_t_stack = scaler.inverse_transform(lower_ci_t_stack)
+        lower_ci_t = lower_ci_t_stack[:, 0]
+
+        upper_ci_t = torch.Tensor(upper_ci_t).view(-1, 1)
+        upper_ci_t_stack = torch.stack((upper_ci_t, upper_ci_t, upper_ci_t, upper_ci_t, upper_ci_t, upper_ci_t,
+                                        upper_ci_t, upper_ci_t, upper_ci_t), dim=1).squeeze()
+        upper_ci_t_stack = scaler.inverse_transform(upper_ci_t_stack)
+        upper_ci_t = upper_ci_t_stack[:, 0]
+
         depths = df_test_single_well["DEPTH"]
+
         plt.figure(figsize=(8, 12))
         plt.title("Well: {}. Coverage probability {:.2f}%".format(well, 100*empirical_coverage), fontsize=18)
         plt.ylabel("Depth", fontsize=16)
@@ -250,20 +298,27 @@ if __name__ == "__main__":
         plt.ylim([depths.values[-1], depths.values[0]])
         plt.legend(loc="best", fontsize=12)
         # set x-lim for different wells:
+        if well == "30/8-5 T2": # zoomed out
+            plt.xlim([0, 500])
+            plt.legend(loc="lower right", fontsize=12)
+
         if well == "25/4-10 S":
-            plt.xlim([-5, 7])
+            plt.xlim([150, 320])
         elif well == "25/7-6":
-            plt.xlim([-4, 4])
-        elif well == "30/6-26" or well == "30/8-5 T2":
-            plt.xlim([-5, 5])
+            plt.xlim([50, 420])
+        elif well == "30/6-26":
+            plt.xlim([70, 420])
+        elif well == "30/8-5 T2":
+            plt.xlim([80, 290])
+            plt.legend(loc="lower right", fontsize=12)
         elif well == "30/11-10":
-            plt.xlim([-7, 7])
+            plt.xlim([-110, 610])
         elif well == "30/11-7":
-            plt.xlim([-7, 9])
+            plt.xlim([-25, 1000])
         elif well == "30/11-9 ST2":
-            plt.xlim([-3, 7])
-        else:
-            plt.xlim([-5, 11])
+            plt.xlim([50, 400])
+        else: # 30/11-11 S
+            plt.xlim([40, 400])
     plt.show()
 
 

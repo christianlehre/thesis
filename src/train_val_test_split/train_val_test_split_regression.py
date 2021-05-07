@@ -10,7 +10,7 @@ def create_torch_dataset(df, target, predictors):
     y = df[target]
     y = torch.tensor(y.values, dtype=torch.float32).view(-1, 1)
     x = df[predictors]
-    x = torch.tensors(x.values, dtype=torch.float32).view(-1, 1)
+    x = torch.tensor(x.values, dtype=torch.float32).view(-1, 1)
 
     dataset = torch.utils.data.TensorDataset(x, y)
     return dataset
@@ -87,10 +87,46 @@ class Train_test_split:
         :return: list of wells, training wells, validation wells and test wells
         """
         wells = list(set(df[self.well_column]))
-        test_wells = random.Random(42).sample(wells, int(self.test_size*self.N_wells))
-        training_wells = [well for well in wells if well not in test_wells]
-        validation_wells = random.Random(42).sample(training_wells, int(self.validation_size*len(training_wells)))
-        training_wells = [well for well in training_wells if well not in validation_wells]
+        #test_wells = random.Random(42).sample(wells, int(self.test_size*self.N_wells))
+        #training_wells = [well for well in wells if well not in test_wells]
+        #validation_wells = random.Random(42).sample(training_wells, int(self.validation_size*len(training_wells)))
+        #training_wells = [well for well in training_wells if well not in validation_wells]
+
+        training_wells = ['25/8-14 ST2',
+                             '30/11-6 S',
+                             '30/11-8 S',
+                             '25/4-7',
+                             '25/5-9',
+                             '30/5-2',
+                             '30/11-9 A',
+                             '25/11-24',
+                             '25/10-15 S',
+                             '25/2-18 A',
+                             '25/8-8 S',
+                             '25/10-16 S',
+                             '25/10-16 A',
+                             '25/4-9 S',
+                             '25/8-12 S',
+                             '25/2-18 ST2',
+                             '25/7-4 S',
+                             '25/6-4 S',
+                             '25/10-16 C',
+                             '25/4-13 A',
+                             '30/9-22',
+                             '25/10-12 ST2',
+                             '25/8-12 A',
+                             '25/5-6']
+
+        validation_wells = ['25/5-5', '30/11-7 A']
+
+        test_wells = ['25/7-6',
+                         '30/11-11 S',
+                         '30/11-9 ST2',
+                         '30/6-26',
+                         '30/8-5 T2',
+                         '25/4-10 S',
+                         '30/11-7',
+                         '30/11-10']
 
         return wells, training_wells, validation_wells, test_wells
 
@@ -125,9 +161,9 @@ class Train_test_split:
         :param df_test: pandas dataframe for test set
         :return: None
         """
-        df_train.to_csv("./data/train_regression.csv", sep=';', index=False)
-        df_val.to_csv("./data/val_regression.csv", sep=";", index=False)
-        df_test.to_csv("./data/test_regression.csv", sep=';', index=False)
+        df_train.to_csv("./data/train_regression_scaled_response_wellwise.csv", sep=';', index=False)
+        df_val.to_csv("./data/val_regression_scaled_response_wellwise.csv", sep=";", index=False)
+        df_test.to_csv("./data/test_regression_scaled_response_wellwise.csv", sep=';', index=False)
 
     def load_train_val_test_split(self):
         """
@@ -183,11 +219,11 @@ class Train_test_split:
 
 
 if __name__ == "__main__":
-    preprocessed_data_fname = "preprocessed_regression.csv"
+    preprocessed_data_fname = "preprocessed_regression_scaled_response_wellwise.csv"
     data_folder = "./data"
     path_to_preprocessed_data = os.path.join(data_folder, preprocessed_data_fname)
     print(os.getcwd())
-    os.chdir("./..")
+    os.chdir("./../..")
     print(os.getcwd())
 
     test_size = 0.25

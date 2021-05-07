@@ -1,10 +1,8 @@
-import pandas as pd
-import numpy as np
 import os
 import time
 import torch.nn as nn
+from pickle import load
 from matplotlib import pyplot as plt
-from torchinfo import summary
 from src.SGVB.bayesianlinear import BayesianLinear
 from src.dataloader.dataloader import Dataloader
 from src.utils import *
@@ -197,7 +195,7 @@ if __name__ == "__main__":
             val_loss = data["validation_loss"]
             training_time = data["training_time"]
 
-    model.train(mode=False) # Eller?
+    model.train(mode=False)
 
     mse, mae = model.evaluate_performance(test_loader, B=100)
     print("Performance metrics over full test set")
@@ -205,8 +203,11 @@ if __name__ == "__main__":
     print("MAE: {:.5f} +/- {:.5f}".format(mae[0], mae[1]))
 
     plt.figure()
-    plt.plot(range(model.num_epochs), train_loss, label="training")
-    plt.plot(range(model.num_epochs), val_loss, label="validation")
+    epochs = range(model.num_epochs)
+    epochs = list(map(lambda x: x+1, epochs))
+    plt.xticks(epochs)
+    plt.plot(epochs, train_loss, label="training")
+    plt.plot(epochs, val_loss, label="validation")
     plt.title("Loss curves - Heteroscedastic SGVB", fontsize=18)
     plt.ylabel("ELBO loss", fontsize=16)
     plt.xlabel("Epoch", fontsize=16)
@@ -214,9 +215,12 @@ if __name__ == "__main__":
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
 
+
     # Plot predictions and credible intervals for wells in the test set
     wells = list(set(df_test[well_variable]))
     for well in wells:
+        if well != "30/8-5 T2":
+            continue
         df_test_single_well = df_test[df_test[well_variable] == well]
         test_set = create_torch_dataset(df_test_single_well, target_variable, explanatory_variables)
         test_loader = torch.utils.data.DataLoader(dataset=test_set,
@@ -228,12 +232,57 @@ if __name__ == "__main__":
         print("Performance metrics for well {}".format(well))
         print("MSE: {:.5f} +/- {:.5f}".format(mse[0], mse[1]))
         print("MAE: {:.5f} +/- {:.5f}".format(mae[0], mae[1]))
-        continue
+
         mean_predictions, var_epistemic, var_aleatoric, var_total = model.aleatoric_epistemic_variance(test_loader, B=100)
         lower_ci_e, upper_ci_e = credible_interval(mean_predictions, var_epistemic, std_multiplier=2)
         lower_ci_t, upper_ci_t = credible_interval(mean_predictions, var_total, std_multiplier=2)
         empirical_coverage = coverage_probability(y_test, lower_ci_t, upper_ci_t)
         depths = df_test_single_well["DEPTH"]
+
+        # load scaler and scale back to original scale
+        well_name = well.replace("/", "")
+        well_name = well_name.replace(" ", "")
+        path_to_scaler = "./data/models/scaler/well" + well_name + ".pkl"
+        scaler = load(open(path_to_scaler, 'rb'))
+
+        # apply inverse scaler
+        y_test_stack = torch.stack((y_test, y_test, y_test, y_test, y_test, y_test, y_test, y_test, y_test),
+                                   dim=1).squeeze()
+        y_test_stack = scaler.inverse_transform(y_test_stack)
+        y_test = y_test_stack[:, 0]
+
+        mean_predictions = torch.Tensor(mean_predictions).view(-1, 1)
+        mean_predictions_stack = torch.stack((mean_predictions, mean_predictions, mean_predictions, mean_predictions,
+                                              mean_predictions, mean_predictions, mean_predictions, mean_predictions,
+                                              mean_predictions), dim=1).squeeze()
+        mean_predictions_stack = scaler.inverse_transform(mean_predictions_stack)
+        mean_predictions = mean_predictions_stack[:, 0]
+
+        lower_ci_e = torch.Tensor(lower_ci_e).view(-1, 1)
+        lower_ci_e_stack = torch.stack((lower_ci_e, lower_ci_e, lower_ci_e, lower_ci_e, lower_ci_e, lower_ci_e,
+                                        lower_ci_e, lower_ci_e, lower_ci_e), dim=1).squeeze()
+        lower_ci_e_stack = scaler.inverse_transform(lower_ci_e_stack)
+        lower_ci_e = lower_ci_e_stack[:, 0]
+
+        upper_ci_e = torch.Tensor(upper_ci_e).view(-1, 1)
+        upper_ci_e_stack = torch.stack((upper_ci_e, upper_ci_e, upper_ci_e, upper_ci_e, upper_ci_e, upper_ci_e,
+                                        upper_ci_e, upper_ci_e, upper_ci_e), dim=1).squeeze()
+        upper_ci_e_stack = scaler.inverse_transform(upper_ci_e_stack)
+        upper_ci_e = upper_ci_e_stack[:, 0]
+
+        lower_ci_t = torch.Tensor(lower_ci_t).view(-1, 1)
+        lower_ci_t_stack = torch.stack((lower_ci_t, lower_ci_t, lower_ci_t, lower_ci_t, lower_ci_t, lower_ci_t,
+                                        lower_ci_t, lower_ci_t, lower_ci_t), dim=1).squeeze()
+        lower_ci_t_stack = scaler.inverse_transform(lower_ci_t_stack)
+        lower_ci_t = lower_ci_t_stack[:, 0]
+
+        upper_ci_t = torch.Tensor(upper_ci_t).view(-1, 1)
+        upper_ci_t_stack = torch.stack((upper_ci_t, upper_ci_t, upper_ci_t, upper_ci_t, upper_ci_t, upper_ci_t,
+                                        upper_ci_t, upper_ci_t, upper_ci_t), dim=1).squeeze()
+        upper_ci_t_stack = scaler.inverse_transform(upper_ci_t_stack)
+        upper_ci_t = upper_ci_t_stack[:, 0]
+
+
         plt.figure(figsize=(8, 12))
         plt.title("Well: {}. Coverage probability {:.2f}%".format(well, 100 * empirical_coverage), fontsize=18)
         plt.ylabel("Depth", fontsize=16)
@@ -246,23 +295,21 @@ if __name__ == "__main__":
         plt.fill_betweenx(depths, lower_ci_e, upper_ci_e, color="red", alpha=0.2, label="95% CI epistemic")
         plt.ylim([depths.values[-1], depths.values[0]])
         plt.legend(loc="best", fontsize=12)
-        if well == "30/8-5 T2":
-            plt.legend(loc="lower right", fontsize=12)
-        # set x-lim for different wells:
         if well == "25/4-10 S":
-            plt.xlim([-5, 7])
+            plt.xlim([150, 320])
         elif well == "25/7-6":
-            plt.xlim([-4, 4])
-        elif well == "30/8-5 T2":
-            plt.xlim([-5, 7])
+            plt.xlim([50, 420])
         elif well == "30/6-26":
-            plt.xlim([-5, 9])
+            plt.xlim([70, 520])
+        elif well == "30/8-5 T2":
+            plt.xlim([0, 500])
+            plt.legend(loc="lower right", fontsize=12)
         elif well == "30/11-10":
-            plt.xlim([-7, 7])
+            plt.xlim([-60, 830])
         elif well == "30/11-7":
-            plt.xlim([-7, 9])
+            plt.xlim([-25, 800])
         elif well == "30/11-9 ST2":
-            plt.xlim([-4, 8])
-        else:
-            plt.xlim([-5, 11])
+            plt.xlim([25, 500])
+        else:  # 30/11-11 S
+            plt.xlim([40, 400])
     plt.show()

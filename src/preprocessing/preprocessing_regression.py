@@ -3,6 +3,8 @@ import os
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
+from pickle import dump
+
 
 class Preprocessing:
     def __init__(self, path_to_raw_data, path_to_preprocessed_data):
@@ -44,13 +46,16 @@ class Preprocessing:
     def scale_features_wellwise(self, df):
         new_df = df.copy(deep=True)
         new_df.drop(["well_name", "DEPTH"], axis=1, inplace=True)
-        scaler = StandardScaler()
         wells = df['well_name'].unique()
         for well in wells:
+            scaler = StandardScaler()
+            well_name = well.replace(" ", "")
+            path_to_scaler ="./data/models/scaler/well"+well_name.replace("/","")+".pkl"
             new_df[df['well_name'] == well] = scaler.fit_transform(new_df[df['well_name'] == well])
-
+            dump(scaler, open(path_to_scaler, 'wb'))
         new_df["DEPTH"] = df["DEPTH"]
         new_df['well_name'] = df['well_name'] # just for validating the scaling and splitting data further down the pipeline
+
         return new_df
 
     def validate_scaling(self, df):
@@ -129,7 +134,7 @@ class Preprocessing:
 
 if __name__ == "__main__":
     raw_data_fname = "raw_regression.csv"
-    preprocessed_data_fname = "preprocessed_regression.csv"
+    preprocessed_data_fname = "preprocessed_regression_scaled_response_wellwise.csv"
     data_folder = "./data"
     path_to_raw_data = os.path.join(data_folder, raw_data_fname)
     path_to_preprocessed_data = os.path.join(data_folder, preprocessed_data_fname)
@@ -138,6 +143,8 @@ if __name__ == "__main__":
     preprocessor = Preprocessing(path_to_raw_data=path_to_raw_data, path_to_preprocessed_data=path_to_preprocessed_data)
     preprocessed_data = preprocessor.preprocessing_main()
     preprocessor.save_dataset(preprocessed_data)
+
+
 
 
 
