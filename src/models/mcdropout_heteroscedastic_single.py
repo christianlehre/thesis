@@ -6,7 +6,7 @@ from src.dataloader.dataloader import Dataloader
 from src.utils import *
 from pickle import load
 
-class MCDropoutHomoscedastic(nn.Module):
+class MCDropoutHeteroscedastic(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, N, M, dropout_rate):
         super(MCDropoutHomoscedastic, self).__init__()
         self.fc1 = nn.Linear(input_dim, hidden_dim)
@@ -158,7 +158,7 @@ if __name__ == "__main__":
     validation_loader = dataloader.validation_loader()
     test_loader = dataloader.test_loader()
 
-    model = MCDropoutHomoscedastic(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, N=N, M=M,
+    model = MCDropoutHeteroscedastic(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, N=N, M=M,
                                    dropout_rate=dropout_rate)
 
     training_configuration = "mcdropout_heteroscedastic_single"
