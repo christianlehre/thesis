@@ -140,9 +140,9 @@ if __name__ == "__main__":
     os.chdir("../..")
     print(os.getcwd())
 
-    df_train = pd.read_csv("./data/train_regression.csv", sep=";")
-    df_val = pd.read_csv("./data/val_regression.csv", sep=";")
-    df_test = pd.read_csv("./data/test_regression.csv", sep=";")
+    df_train = pd.read_csv("./data/train_regression_without_scaled_response.csv", sep=";")
+    df_val = pd.read_csv("./data/val_regression_without_scaled_response.csv", sep=";")
+    df_test = pd.read_csv("./data/test_regression_without_scaled_response.csv", sep=";")
 
     variables = df_train.columns.values
     target_variable = "ACS"
@@ -171,7 +171,7 @@ if __name__ == "__main__":
     model = MCDropoutHeteroscedastic(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, N=N, M=M,
                                      dropout_rate=dropout_rate)
 
-    training_configuration = "mcdropout_heteroscedastic_dropout_"+str(model.dropout_rate)+"_lr_"+str(model.lr)+"_numepochs_"+str(model.num_epochs)+"_hiddenunits_"\
+    training_configuration = "original_response_mcdropout_heteroscedastic_dropout_"+str(model.dropout_rate)+"_lr_"+str(model.lr)+"_numepochs_"+str(model.num_epochs)+"_hiddenunits_"\
                              +str(hidden_dim)+"_hiddenlayers_2"+"_batch_size_"+str(batch_size)
     training_configuration = training_configuration.replace(".", "")
     path_to_model = "./data/models/regression/"
@@ -180,7 +180,7 @@ if __name__ == "__main__":
     path_to_loss = os.path.join(path_to_losses, training_configuration)
     path_to_loss += ".npz"
 
-    train = False
+    train = True
     if train:
         model.train(mode=True)  # keep this on during test time, to obtain probabilistic behaviour
         print("Training MC Dropout model (heteroscedastic)...")
@@ -212,10 +212,10 @@ if __name__ == "__main__":
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
 
-    mse, mae = model.evaluate_performance(test_loader, B=100)
-    print("Performance over full test set:")
-    print("MSE: {:.5f} +/- {:.5f}".format(mse[0], mse[1]))
-    print("MAE: {:.5f} +/- {:.5f}".format(mae[0], mae[1]))
+    #mse, mae = model.evaluate_performance(test_loader, B=100)
+    #print("Performance over full test set:")
+    #print("MSE: {:.5f} +/- {:.5f}".format(mse[0], mse[1]))
+    #print("MAE: {:.5f} +/- {:.5f}".format(mae[0], mae[1]))
 
     # plot predictions and credible intervals for wells in the test set
     wells = list(set(df_test[well_variable]))
@@ -226,10 +226,10 @@ if __name__ == "__main__":
                                                   batch_size=len(test_set),
                                                   shuffle=False)
         x_test, y_test = unpack_dataset(test_loader)
-        mse, mae = model.evaluate_performance(test_loader, B=100)
-        print("Performance metrics for well {}".format(well))
-        print("MSE: {:.5f} +/- {:.5f}".format(mse[0], mse[1]))
-        print("MAE: {:.5f} +/- {:.5f}".format(mae[0], mae[1]))
+        #mse, mae = model.evaluate_performance(test_loader, B=100)
+        #print("Performance metrics for well {}".format(well))
+        #print("MSE: {:.5f} +/- {:.5f}".format(mse[0], mse[1]))
+        #print("MAE: {:.5f} +/- {:.5f}".format(mae[0], mae[1]))
 
         mean_predictions, var_epistemic, var_aleatoric, var_total = model.aleatoric_epistemic_variance(test_loader, B=100)
         lower_ci_e, upper_ci_e = credible_interval(mean_predictions, var_epistemic, std_multiplier=2)

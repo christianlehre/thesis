@@ -141,9 +141,9 @@ if __name__ == "__main__":
     os.chdir("../..")
     print(os.getcwd())
 
-    df_train = pd.read_csv("./data/train_regression.csv", sep=";")
-    df_val = pd.read_csv("./data/val_regression.csv", sep=";")
-    df_test = pd.read_csv("./data/test_regression.csv", sep=";")
+    df_train = pd.read_csv("./data/train_regression_without_scaled_response.csv", sep=";")
+    df_val = pd.read_csv("./data/val_regression_without_scaled_response.csv", sep=";")
+    df_test = pd.read_csv("./data/test_regression_without_scaled_response.csv", sep=";")
 
     variables = df_train.columns.values
     target_variable = "ACS"
@@ -169,7 +169,7 @@ if __name__ == "__main__":
 
     model = BayesianRegressor(in_size=input_dim, hidden_size=hidden_dim, out_size=output_dim, n_batches=M, dropout_rate=dropout_rate)
 
-    training_conf = "sgvb_heteroscedastic_dropout_"+str(model.dropout_rate)+"_lr_"+str(model.lr)+"_numepochs_"+str(model.num_epochs)+"_hiddenunits_"\
+    training_conf = "original_response_sgvb_heteroscedastic_dropout_"+str(model.dropout_rate)+"_lr_"+str(model.lr)+"_numepochs_"+str(model.num_epochs)+"_hiddenunits_"\
                     +str(hidden_dim)+"_hiddenlayers_2"+"_batch_size_"+str(batch_size)
     training_conf = training_conf.replace(".", "")
     path_to_model = "./data/models/regression/"
@@ -178,7 +178,7 @@ if __name__ == "__main__":
     path_to_loss = os.path.join(path_to_losses, training_conf)
     path_to_loss += ".npz"
 
-    train = False
+    train = True
     if train:
         model.train(mode=True)
         print("Training Bayesian neural network...")
@@ -199,10 +199,10 @@ if __name__ == "__main__":
 
     model.train(mode=False) # Eller?
 
-    mse, mae = model.evaluate_performance(test_loader, B=100)
-    print("Performance metrics over full test set")
-    print("MSE: {:.5f} +/- {:.5f}".format(mse[0], mse[1]))
-    print("MAE: {:.5f} +/- {:.5f}".format(mae[0], mae[1]))
+    #mse, mae = model.evaluate_performance(test_loader, B=100)
+    #print("Performance metrics over full test set")
+    #print("MSE: {:.5f} +/- {:.5f}".format(mse[0], mse[1]))
+    #rint("MAE: {:.5f} +/- {:.5f}".format(mae[0], mae[1]))
 
     plt.figure()
     plt.plot(range(model.num_epochs), train_loss, label="training")
@@ -214,6 +214,10 @@ if __name__ == "__main__":
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
 
+
+    os.chdir("../../../..")
+    print(os.getcwd())
+    path_to_peder = "./to_peder/predictions_variance_original_scale/heteroscedastic_sgvb/"
     # Plot predictions and credible intervals for wells in the test set
     wells = list(set(df_test[well_variable]))
     for well in wells:
@@ -224,16 +228,27 @@ if __name__ == "__main__":
                                                   shuffle=False,
                                                   )
         x_test, y_test = unpack_dataset(test_loader)
-        mse, mae = model.evaluate_performance(test_loader, B=100)
-        print("Performance metrics for well {}".format(well))
-        print("MSE: {:.5f} +/- {:.5f}".format(mse[0], mse[1]))
-        print("MAE: {:.5f} +/- {:.5f}".format(mae[0], mae[1]))
-        continue
+        #mse, mae = model.evaluate_performance(test_loader, B=100)
+        #print("Performance metrics for well {}".format(well))
+        #print("MSE: {:.5f} +/- {:.5f}".format(mse[0], mse[1]))
+        #print("MAE: {:.5f} +/- {:.5f}".format(mae[0], mae[1]))
+
+
         mean_predictions, var_epistemic, var_aleatoric, var_total = model.aleatoric_epistemic_variance(test_loader, B=100)
         lower_ci_e, upper_ci_e = credible_interval(mean_predictions, var_epistemic, std_multiplier=2)
         lower_ci_t, upper_ci_t = credible_interval(mean_predictions, var_total, std_multiplier=2)
+
+
+
         empirical_coverage = coverage_probability(y_test, lower_ci_t, upper_ci_t)
         depths = df_test_single_well["DEPTH"]
+        well = well.replace("/", "")
+        well = well.replace(" ", "")
+        path_to_peder += "predictions_variance_"+well+".npz"
+        #np.savez(path_to_peder, mean_predictions=mean_predictions, var_total=var_total, var_epistemic=var_epistemic,
+        #         var_aleatoric=var_aleatoric, y_test=y_test, depths=depths, well=well)
+
+
         plt.figure(figsize=(8, 12))
         plt.title("Well: {}. Coverage probability {:.2f}%".format(well, 100 * empirical_coverage), fontsize=18)
         plt.ylabel("Depth", fontsize=16)

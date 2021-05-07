@@ -3,6 +3,8 @@ import os
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
+from pickle import dump
+
 
 class Preprocessing:
     def __init__(self, path_to_raw_data, path_to_preprocessed_data):
@@ -51,8 +53,10 @@ class Preprocessing:
 
         new_df["DEPTH"] = df["DEPTH"]
         new_df['well_name'] = df['well_name'] # just for validating the scaling and splitting data further down the pipeline
-        new_df["ACS"] = df["ACS"]
-        return new_df
+        scaler_global = StandardScaler()
+        new_df["ACS"] = scaler_global.fit_transform(df[["ACS"]])
+        # save scaler to file
+        return new_df, scaler_global
 
     def validate_scaling(self, df):
         wells = df['well_name'].unique()
@@ -111,7 +115,7 @@ class Preprocessing:
         print('Dimension of data cleaned for bad/missing ACS: {}'.format(data.shape))
         data = self.feature_selection(data)
         data = self.mean_imputer(data)
-        data = self.scale_features_wellwise(data)
+        data, scaler = self.scale_features_wellwise(data)
         added_cols = []
         if self.add_gradients:
             data, gradient_cols = self.feature_engineering_add_gradients(data, columns=self.columns_to_engineer)
@@ -125,20 +129,24 @@ class Preprocessing:
         assert all([col in added_plus_selected for col in data.columns.values]), \
             "Variables not properly added to dataset"
         print('Dimensions of preprocessed data: {} '.format(data.shape))
-        return data
+        return data, scaler
 
 
 if __name__ == "__main__":
     raw_data_fname = "raw_regression.csv"
-    preprocessed_data_fname = "preprocessed_regression_without_scaled_response.csv"
+    preprocessed_data_fname = "preprocessed_regression_globally_scaled_response.csv"
+    scaler_fname = "models/scaler/scaler_response_global.pkl"
     data_folder = "./data"
     path_to_raw_data = os.path.join(data_folder, raw_data_fname)
     path_to_preprocessed_data = os.path.join(data_folder, preprocessed_data_fname)
+    path_to_scaler = os.path.join(data_folder, scaler_fname)
     os.chdir("../..")
 
     preprocessor = Preprocessing(path_to_raw_data=path_to_raw_data, path_to_preprocessed_data=path_to_preprocessed_data)
-    preprocessed_data = preprocessor.preprocessing_main()
+    preprocessed_data, scaler = preprocessor.preprocessing_main()
     preprocessor.save_dataset(preprocessed_data)
+    # save scaler
+    dump(scaler, open(path_to_scaler, 'wb'))
 
 
 
