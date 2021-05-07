@@ -161,9 +161,9 @@ class Train_test_split:
         :param df_test: pandas dataframe for test set
         :return: None
         """
-        df_train.to_csv("./data/train_regression_globally_scaled_response.csv", sep=';', index=False)
-        df_val.to_csv("./data/val_regression_globally_scaled_response.csv", sep=";", index=False)
-        df_test.to_csv("./data/test_regression_globally_scaled_response.csv", sep=';', index=False)
+        df_train.to_csv("./data/train_regression_scaled_response_wellwise.csv", sep=';', index=False)
+        df_val.to_csv("./data/val_regression_scaled_response_wellwise.csv", sep=";", index=False)
+        df_test.to_csv("./data/test_regression_scaled_response_wellwise.csv", sep=';', index=False)
 
     def load_train_val_test_split(self):
         """
@@ -219,7 +219,7 @@ class Train_test_split:
 
 
 if __name__ == "__main__":
-    preprocessed_data_fname = "preprocessed_regression_globally_scaled_response.csv"
+    preprocessed_data_fname = "preprocessed_regression_scaled_response_wellwise.csv"
     data_folder = "./data"
     path_to_preprocessed_data = os.path.join(data_folder, preprocessed_data_fname)
     print(os.getcwd())
