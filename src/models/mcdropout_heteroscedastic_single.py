@@ -8,7 +8,7 @@ from pickle import load
 
 class MCDropoutHeteroscedastic(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, N, M, dropout_rate):
-        super(MCDropoutHomoscedastic, self).__init__()
+        super(MCDropoutHeteroscedastic, self).__init__()
         self.fc1 = nn.Linear(input_dim, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, output_dim)
         self.relu = nn.ReLU()

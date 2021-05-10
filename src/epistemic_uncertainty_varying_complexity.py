@@ -11,6 +11,12 @@ from src.models.mcdropout_heteroscedastic_linear import MCDropoutHeteroscedastic
 from src.SGVB.bayesian_homoscedastic_linear import BayesianRegressorHomoscedastic as Homoscedastic_SGVB_Linear
 from src.SGVB.bayesian_heteroscedastic_linear import BayesianRegressor as Heteroscedastic_SGVB_Linear
 
+# import single layer models
+from src.models.mcdropout_homoscedastic_single import MCDropoutHomoscedastic as Homoscedastic_MCDropout_Single
+from src.models.mcdropout_heteroscedastic_single import MCDropoutHeteroscedastic as Heteroscedastic_MCDropout_Single
+from src.SGVB.bayesian_homoscedastic_single import BayesianRegressorHomoscedastic as Homoscedastic_SGVB_Single
+from src.SGVB.bayesian_heteroscedastic_single import BayesianRegressor as Heteroscedastic_SGVB_Single
+
 # import intermediate models
 from src.models.regression_mcdropout_homoscedastic import MCDropoutHomoscedastic as Homoscedastic_MCDropout_Intermediate
 from src.models.regression_mcdropout_heteroscedastic import MCDropoutHeteroscedastic as Heteroscedastic_MCDropout_Intermediate
@@ -44,6 +50,10 @@ def nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, layers, N,
                         model = Homoscedastic_MCDropout_Linear(input_dim=input_dim, output_dim=output_dim, N=N, M=M,
                                                                dropout_rate=dropout_rate)
 
+                    elif dir == "single_layer":
+                        model = Homoscedastic_MCDropout_Single(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, N=N, M=M,
+                                                               dropout_rate=dropout_rate)
+
                     elif dir == "intermediate":
                         model = Homoscedastic_MCDropout_Intermediate(input_dim=input_dim, hidden_dim=hidden_dim,
                                                                      output_dim=output_dim, N=N, M=M,
@@ -51,13 +61,18 @@ def nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, layers, N,
                     elif dir == "complex":
                         model = Homoscedastic_MCDropout_Complex(layers=layers, N=N, M=M, dropout_rate=dropout_rate)
                     else:
-                        print("Neither linear, intermediate nor complex homoscedastic mcdropout model found")
+                        print("Neither linear, single layer, intermediate nor complex homoscedastic mcdropout model found")
 
                 elif "heteroscedastic" in model_path.split("_"):
                     model_type = "MC Dropout Heteroscedastic"
                     if dir == "linear":
                         model = Heteroscedastic_MCDropout_Linear(input_dim=input_dim, output_dim=output_dim, N=N, M=M,
                                                                  dropout_rate=dropout_rate)
+
+                    elif dir == "single_layer":
+                        model = Heteroscedastic_MCDropout_Single(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, N=N, M=M,
+                                                               dropout_rate=dropout_rate)
+
                     elif dir == "intermediate":
                         model = Heteroscedastic_MCDropout_Intermediate(input_dim=input_dim, hidden_dim=hidden_dim,
                                                                      output_dim=output_dim, N=N, M=M,
@@ -65,7 +80,7 @@ def nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, layers, N,
                     elif dir == "complex":
                         model = Heteroscedastic_MCDropout_Complex(layers=layers, N=N, M=M, dropout_rate=dropout_rate)
                     else:
-                        print("Neither linear, intermediate nor complex heteroscedastic mcdropout model found")
+                        print("Neither linear, single layer, intermediate nor complex heteroscedastic mcdropout model found")
                 else:
                     print("Neither homoscedastic nor heteroscedastic mcdropout model found")
 
@@ -75,6 +90,11 @@ def nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, layers, N,
                     if dir == "linear":
                         model = Homoscedastic_SGVB_Linear(in_size=input_dim, out_size=output_dim, n_batches=M,
                                                           dropout_rate=dropout_rate)
+
+                    elif dir == "single_layer":
+                        model = Homoscedastic_SGVB_Single(in_size=input_dim, hidden_size=hidden_dim, out_size=output_dim, n_batches=M,
+                                                          dropout_rate=dropout_rate)
+
                     elif dir == "intermediate":
                         model = Homoscedastic_SGVB_Intermediate(in_size=input_dim, hidden_size=hidden_dim,
                                                                 out_size=output_dim, n_batches=M,
@@ -82,13 +102,18 @@ def nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, layers, N,
                     elif dir == "complex":
                         model = Homoscedastic_SGVB_Complex(layers=layers, n_batches=M, dropout_rate=dropout_rate)
                     else:
-                        print("Neither linear, intermediate nor complex homoscedastic sgvb model found")
+                        print("Neither linear, single layer, intermediate nor complex homoscedastic sgvb model found")
 
                 elif "heteroscedastic" in model_path.split("_"):
                     model_type = "SGVB Heteroscedastic"
                     if dir == "linear":
                         model = Heteroscedastic_SGVB_Linear(in_size=input_dim, out_size=output_dim, n_batches=M,
                                                             dropout_rate=dropout_rate)
+
+                    elif dir == "single_layer":
+                        model = Heteroscedastic_SGVB_Single(in_size=input_dim, hidden_size=hidden_dim, out_size=output_dim, n_batches=M,
+                                                          dropout_rate=dropout_rate)
+
                     elif dir == "intermediate":
                         model = Heteroscedastic_SGVB_Intermediate(in_size=input_dim, hidden_size=hidden_dim,
                                                                   out_size=output_dim, n_batches=M,
@@ -96,7 +121,7 @@ def nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, layers, N,
                     elif dir == "complex":
                         model = Heteroscedastic_SGVB_Complex(layers=layers, n_batches=M, dropout_rate=dropout_rate)
                     else:
-                        print("Neither linear, intermediate nor complex heteroscedastic sgvb model found")
+                        print("Neither linear, single layer, intermediate nor complex heteroscedastic sgvb model found")
                 else:
                     print("Neither homoscedastic nor heteroscedastic SGVB model found")
 
@@ -117,7 +142,7 @@ def nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, layers, N,
 
             _, var_epistemic, _, _ = model.aleatoric_epistemic_variance(test_loader, B=100)
             std_epistemic = np.sqrt(var_epistemic)
-
+            print("complexity {}, model {}".format(dir, model_type))
             uncertainty_per_complexity[model_type] = np.mean(std_epistemic)
 
         uncertainty_over_all_complexities[dir] = uncertainty_per_complexity
@@ -192,8 +217,8 @@ if __name__ == "__main__":
 
     test_loader = dataloader.test_loader()
     path_to_models = "./data/models/regression/varying_complexity"
-    path_to_dictionary = "./data/epistemic_uncertainty/varying_complexity.txt"
-    create_dict = False
+    path_to_dictionary = "./data/epistemic_uncertainty/varying_complexity_including_single_layer.txt"
+    create_dict = True
 
     if create_dict:
         uncertainty_dict = nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, layers, N, M, dropout_rate, path_to_models)
@@ -203,6 +228,7 @@ if __name__ == "__main__":
 
 
     dict_to_plot = {"Linear": uncertainty_dict["linear"],
+                    "Single layer": uncertainty_dict["single_layer"],
                     "Intermediate": uncertainty_dict["intermediate"],
                     "Complex": uncertainty_dict["complex"]}
 
