@@ -140,8 +140,8 @@ if __name__ == "__main__":
     os.chdir("../..")
     print(os.getcwd())
 
-    df_train = pd.read_csv("./data/train_regression_scaled_response_wellwise.csv", sep=";")
-    df_val = pd.read_csv("./data/val_regression_scaled_response_wellwise.csv", sep=";")
+    df_train = pd.read_csv("./data/train_regression.csv", sep=";")
+    df_val = pd.read_csv("./data/val_regression.csv", sep=";")
     df_test = pd.read_csv("./data/test_regression.csv", sep=";")
 
     variables = df_train.columns.values
@@ -170,7 +170,6 @@ if __name__ == "__main__":
 
     model = MCDropoutHeteroscedastic(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, N=N, M=M,
                                      dropout_rate=dropout_rate)
-
     training_configuration = "mcdropout_heteroscedastic_dropout_"+str(model.dropout_rate)+"_lr_"+str(model.lr)+"_numepochs_"+str(model.num_epochs)+"_hiddenunits_"\
                              +str(hidden_dim)+"_hiddenlayers_2"+"_batch_size_"+str(batch_size)
     training_configuration = training_configuration.replace(".", "")
@@ -199,7 +198,12 @@ if __name__ == "__main__":
             validation_loss = data["validation_loss"]
             training_time = data["training_time"]
 
-    model.train(mode=True)
+    model.eval()
+    for m in model.modules():
+        if m.__class__.__name__.startswith("Dropout"):
+            m.train()
+        else:
+            m.eval()
 
     # plot loss curves
     plt.figure()

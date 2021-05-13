@@ -2,7 +2,8 @@ import pandas as pd
 import random
 import os
 import torch
-
+from pickle import dump
+from sklearn.preprocessing import StandardScaler
 from src.dataloader.dataloader import Dataloader
 
 
@@ -132,7 +133,7 @@ class Train_test_split:
 
     def train_val_test_split_df(self, df, train_wells, val_wells, test_wells):
         """
-        Split dataset into training, validation and test set
+        Split dataset into training, validation and test set.
 
         :param df: pandas dataframe of the dataset (shuffled wellwise)
         :param train_wells: list of training wells
@@ -161,9 +162,9 @@ class Train_test_split:
         :param df_test: pandas dataframe for test set
         :return: None
         """
-        df_train.to_csv("./data/train_regression_scaled_response_wellwise.csv", sep=';', index=False)
-        df_val.to_csv("./data/val_regression_scaled_response_wellwise.csv", sep=";", index=False)
-        df_test.to_csv("./data/test_regression_scaled_response_wellwise.csv", sep=';', index=False)
+        df_train.to_csv("./data/train_regression.csv", sep=';', index=False)
+        df_val.to_csv("./data/val_regression.csv", sep=";", index=False)
+        df_test.to_csv("./data/test_regression.csv", sep=';', index=False)
 
     def load_train_val_test_split(self):
         """
@@ -219,7 +220,7 @@ class Train_test_split:
 
 
 if __name__ == "__main__":
-    preprocessed_data_fname = "preprocessed_regression_scaled_response_wellwise.csv"
+    preprocessed_data_fname = "preprocessed_regression.csv"
     data_folder = "./data"
     path_to_preprocessed_data = os.path.join(data_folder, preprocessed_data_fname)
     print(os.getcwd())
