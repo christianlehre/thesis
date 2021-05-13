@@ -49,11 +49,7 @@ class Preprocessing:
         wells = df['well_name'].unique()
         for well in wells:
             scaler = StandardScaler()
-            well_name = well.replace(" ", "")
-            path_to_scaler ="./data/models/scaler/well"+well_name.replace("/","")+".pkl"
             new_df[df['well_name'] == well] = scaler.fit_transform(new_df[df['well_name'] == well])
-            dump(scaler, open(path_to_scaler, 'wb'))
-        new_df["DEPTH"] = df["DEPTH"]
         new_df['well_name'] = df['well_name'] # just for validating the scaling and splitting data further down the pipeline
 
         return new_df
@@ -134,7 +130,7 @@ class Preprocessing:
 
 if __name__ == "__main__":
     raw_data_fname = "raw_regression.csv"
-    preprocessed_data_fname = "preprocessed_regression_scaled_response_wellwise.csv"
+    preprocessed_data_fname = "preprocessed_regression.csv"
     data_folder = "./data"
     path_to_raw_data = os.path.join(data_folder, raw_data_fname)
     path_to_preprocessed_data = os.path.join(data_folder, preprocessed_data_fname)
