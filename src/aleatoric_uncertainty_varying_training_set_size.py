@@ -87,11 +87,9 @@ def plot_nested_dict(dictionary):
     inner_keys = list(dictionary.values())[0].keys()
     x_axis_values = list(map(str, dictionary.keys()))
     for model in inner_keys:
-        #if model == "mcdropout_heteroscedastic":
-        #    continue
         y_axis_values = [v[model] for v in dictionary.values()]
 
-        plt.plot(x_axis_values, y_axis_values, label=model.replace("_", " ").title(), linewidth=3)
+        plt.plot(x_axis_values, y_axis_values, label=model, linewidth=3)
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     plt.xlabel("Fraction of training set", fontsize=20)
@@ -131,7 +129,7 @@ if __name__ == "__main__":
     path_to_dictionary = "./data/aleatoric_uncertainty/dropout_" + str(dropout_rate).replace(".",
                                                                                              "") + "0_aleatoric_uncertainty_varying_training_set_size.txt"
 
-    create_dict = True
+    create_dict = False
 
     if create_dict:
         uncertainty_dict = nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, N, M, dropout_rate,
@@ -147,9 +145,10 @@ if __name__ == "__main__":
                     "70%": uncertainty_dict["size70"], "80%": uncertainty_dict["size80"],
                     "90%": uncertainty_dict["size90"], "100%": uncertainty_dict["size100"]}
 
-    dict_to_plot = {k: dict(OrderedDict(sorted(v.items()))) for k, v in dict_to_plot.items()}
+
+    dict_to_plot = {k : dict(OrderedDict(sorted(v.items()))) for k, v in dict_to_plot.items()}
 
     plot_nested_dict(dict_to_plot)
     plt.tight_layout()
-    #plt.savefig("../../Figures/aleatoric_uncertainty_varying_training_set_size.pdf")
+    plt.savefig("../../Figures/aleatoric_uncertainty_varying_training_set_size.pdf")
     plt.show()
