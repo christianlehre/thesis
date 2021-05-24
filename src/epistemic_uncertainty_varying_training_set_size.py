@@ -98,6 +98,28 @@ def plot_nested_dict(dictionary):
     plt.title("Epistemic uncertainty for varying size of training set", fontsize=24)
     plt.legend(fontsize=16)
 
+def plot_nested_dicts_same_figure(uncertainty_dictionary, performance_dictionary):
+    fig, ax1 = plt.subplots(figsize=(12, 8))
+    ax1.set_title("Epistemic uncertainty and MSE for varying size of training set", fontsize=24)
+    ax1.set_ylabel("Epistemic uncertainty", fontsize=20)
+    ax1.set_xlabel("Fraction of training set", fontsize=20)
+    ax2 = ax1.twinx()
+    ax2.set_ylabel("test MSE", fontsize=20)
+
+    inner_keys = list(uncertainty_dictionary.values())[0].keys()
+    x_axis_values = list(map(str, uncertainty_dictionary.keys()))
+    for model in inner_keys:
+        y_values_uncertainty = [v[model] for v in uncertainty_dictionary.values()]
+        y_values_performance = [v[model] for v in performance_dictionary.values()]
+
+        ax1.plot(x_axis_values, y_values_uncertainty, "-", label=model, linewidth=3)
+        ax2.plot(x_axis_values, y_values_performance, "--", linewidth=3)
+    plt.xticks(fontsize=16)
+    ax1.set_ylim([0, 0.6])
+    ax1.legend(fontsize=16)
+    plt.setp(ax1.get_yticklabels(), fontsize=16)
+    plt.setp(ax2.get_yticklabels(), fontsize=16)
+
 if __name__ == "__main__":
     print(os.getcwd())
     os.chdir("..")
@@ -129,33 +151,43 @@ if __name__ == "__main__":
 
     test_loader = dataloader.test_loader()
     path_to_models = "./data/models/regression/varying_training_set_size/dropout"+str(dropout_rate).replace(".", "")
-    path_to_dictionary = "./data/epistemic_uncertainty/dropout_"+str(dropout_rate).replace(".","")+"0_epistemic_uncertainty_varying_training_set_size.txt"
+    path_to_uncertainty_dictionary = "./data/epistemic_uncertainty/dropout_"+str(dropout_rate).replace(".","")+"0_epistemic_uncertainty_varying_training_set_size.txt"
+    path_to_performance_dictionary = "./data/performance/dropout_" + str(dropout_rate).replace(".",
+                                                                                   "") + "0_performance_varying_training_set_size.txt"
 
     create_dict = False
 
     if create_dict:
         uncertainty_dict = nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, N, M, dropout_rate, path_to_models)
-        save_dictionary(uncertainty_dict, path_to_dictionary)
+        save_dictionary(uncertainty_dict, path_to_uncertainty_dictionary)
     else:
-        uncertainty_dict = load_dictionary(path_to_dictionary)
+        uncertainty_dict = load_dictionary(path_to_uncertainty_dictionary)
+        performance_dict = load_dictionary(path_to_performance_dictionary)
 
+    # sort dict in ascending fraction of full training set
+    uncertainty_dict_to_plot = {"10%": uncertainty_dict['size10'], "20%": uncertainty_dict["size20"],
+                                "30%": uncertainty_dict["size30"], "40%": uncertainty_dict["size40"],
+                                "50%": uncertainty_dict["size50"], "60%": uncertainty_dict["size60"],
+                                "70%": uncertainty_dict["size70"], "80%": uncertainty_dict["size80"],
+                                "90%": uncertainty_dict["size90"], "100%": uncertainty_dict["size100"]}
 
-    # sort dict in ascending fractino of full training set
-    dict_to_plot = {}
-    dict_to_plot["10%"] = uncertainty_dict['size10']
-    dict_to_plot["20%"] = uncertainty_dict["size20"]
-    dict_to_plot["30%"] = uncertainty_dict["size30"]
-    dict_to_plot["40%"] = uncertainty_dict["size40"]
-    dict_to_plot["50%"] = uncertainty_dict["size50"]
-    dict_to_plot["60%"] = uncertainty_dict["size60"]
-    dict_to_plot["70%"] = uncertainty_dict["size70"]
-    dict_to_plot["80%"] = uncertainty_dict["size80"]
-    dict_to_plot["90%"] = uncertainty_dict["size90"]
-    dict_to_plot["100%"] = uncertainty_dict["size100"]
+    performance_dict_to_plot = {"10%": performance_dict['size10'], "20%": performance_dict["size20"],
+                                "30%": performance_dict["size30"], "40%": performance_dict["size40"],
+                                "50%": performance_dict["size50"], "60%": performance_dict["size60"],
+                                "70%": performance_dict["size70"], "80%": performance_dict["size80"],
+                                "90%": performance_dict["size90"], "100%": performance_dict["size100"]}
 
-    dict_to_plot = {k : dict(OrderedDict(sorted(v.items()))) for k, v in dict_to_plot.items()}
+    uncertainty_dict_to_plot = {k: dict(OrderedDict(sorted(v.items()))) for k, v in uncertainty_dict_to_plot.items()}
+    performance_dict_to_plot = {k: dict(OrderedDict(sorted(v.items()))) for k, v in performance_dict_to_plot.items()}
 
-    plot_nested_dict(dict_to_plot)
-    plt.tight_layout()
-    plt.savefig("../../Figures/dropout_"+str(dropout_rate).replace(".", "")+"0_epistemic_uncertainty_varying_training_set_size.pdf")
+    plot_uncertainty_and_performance = True
+
+    if plot_uncertainty_and_performance:
+        plot_nested_dicts_same_figure(uncertainty_dict_to_plot, performance_dict_to_plot)
+        plt.tight_layout()
+        plt.savefig("../../Figures/epistemic_uncertainty_test_MSE_varying_training_set_size.pdf")
+    else:
+        plot_nested_dict(dict_to_plot)
+        plt.tight_layout()
+        plt.savefig("../../Figures/dropout_"+str(dropout_rate).replace(".", "")+"0_epistemic_uncertainty_varying_training_set_size.pdf")
     plt.show()

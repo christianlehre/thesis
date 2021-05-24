@@ -218,7 +218,7 @@ if __name__ == "__main__":
     test_loader = dataloader.test_loader()
     path_to_models = "./data/models/regression/varying_complexity"
     path_to_dictionary = "./data/epistemic_uncertainty/varying_complexity_including_single_layer.txt"
-    create_dict = True
+    create_dict = False
 
     if create_dict:
         uncertainty_dict = nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, layers, N, M, dropout_rate, path_to_models)
@@ -237,5 +237,5 @@ if __name__ == "__main__":
 
     plot_nested_dict(dict_to_plot)
     plt.tight_layout()
-    plt.savefig("../../Figures/epistemic_uncertainty_varying_complexity")
+    plt.savefig("../../Figures/epistemic_uncertainty_varying_complexity.pdf")
     plt.show()
