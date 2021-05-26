@@ -215,13 +215,15 @@ if __name__ == "__main__":
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
 
+    path_to_folder_qualitative_analysis = "./data/qualitative_analysis/SGVB"
+    if not os.path.exists(path_to_folder_qualitative_analysis):
+        os.makedirs(path_to_folder_qualitative_analysis)
+
     zoomed_out = False
 
     # Plot predictions and credible intervals for wells in the test set
     wells = list(set(df_test[well_variable]))
     for well in wells:
-        if well != "30/8-5 T2":
-            continue
         df_test_single_well = df_test[df_test[well_variable] == well]
         test_set = create_torch_dataset(df_test_single_well, target_variable, explanatory_variables)
         test_loader = torch.utils.data.DataLoader(dataset=test_set,
@@ -239,6 +241,20 @@ if __name__ == "__main__":
         lower_ci_t, upper_ci_t = credible_interval(mean_predictions, var_total, std_multiplier=2)
         empirical_coverage = coverage_probability(y_test, lower_ci_t, upper_ci_t)
         depths = df_test_single_well["DEPTH"]
+
+        # save predictions and credible intervals for the qualitative analysis
+        well_name = well.replace("/", "")
+        well_name = well_name.replace(" ", "")
+        path_to_folder_qualitative_analysis = "./data/qualitative_analysis/SGVB"
+        path_to_folder_qualitative_analysis = os.path.join(path_to_folder_qualitative_analysis, well_name)
+
+        np.savez(path_to_folder_qualitative_analysis, predictions=mean_predictions,
+                 epistemic_variance=var_epistemic,
+                 aleatoric_variance=var_aleatoric,
+                 total_variance=var_total,
+                 depths=depths,
+                 y_test=y_test,
+                 well=well)
 
         plt.figure(figsize=(8, 12))
         plt.title("Well: {}. Coverage probability {:.2f}%".format(well, 100 * empirical_coverage), fontsize=18)
