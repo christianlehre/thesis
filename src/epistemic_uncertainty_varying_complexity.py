@@ -236,6 +236,14 @@ if __name__ == "__main__":
 
 
     plot_nested_dict(dict_to_plot)
-    plt.tight_layout()
-    plt.savefig("../../Figures/epistemic_uncertainty_varying_complexity.pdf")
+
+    plot_zoomed = True
+
+    if plot_zoomed:
+        plt.ylim([0, 0.3])
+        plt.tight_layout()
+        plt.savefig("../../Figures/zoomed_epistemic_uncertainty_varying_complexity.pdf")
+    else:
+        plt.tight_layout()
+        plt.savefig("../../Figures/epistemic_uncertainty_varying_complexity.pdf")
     plt.show()
