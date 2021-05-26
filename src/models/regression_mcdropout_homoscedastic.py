@@ -215,6 +215,8 @@ if __name__ == "__main__":
     print("MSE: {:.5f} +/- {:.5f}".format(mse[0], mse[1]))
     print("MAE: {:.5f} +/- {:.5f}".format(mae[0], mae[1]))
 
+    zoomed_out = True
+
     # Predictions and credible intervals for wells in test set
     wells = list(set(df_test[well_variable]))
     for well in wells:
@@ -237,50 +239,6 @@ if __name__ == "__main__":
         empirical_coverage = coverage_probability(y_test, lower_ci_t, upper_ci_t)
         depths = df_single_well["DEPTH"]
 
-        # load scaler and scale back to original scale
-        # load scaler
-        well_name = well.replace("/", "")
-        well_name = well_name.replace(" ", "")
-        path_to_scaler = "./data/models/scaler/well" + well_name + ".pkl"
-        scaler = load(open(path_to_scaler, 'rb'))
-
-        # apply inverse scaler
-        y_test_stack = torch.stack((y_test, y_test, y_test, y_test, y_test, y_test, y_test, y_test, y_test),
-                                   dim=1).squeeze()
-        y_test_stack = scaler.inverse_transform(y_test_stack)
-        y_test = y_test_stack[:, 0]
-
-        mean_predictions = torch.Tensor(mean_predictions).view(-1, 1)
-        mean_predictions_stack = torch.stack((mean_predictions, mean_predictions, mean_predictions, mean_predictions,
-                                              mean_predictions, mean_predictions, mean_predictions, mean_predictions,
-                                              mean_predictions), dim=1).squeeze()
-        mean_predictions_stack = scaler.inverse_transform(mean_predictions_stack)
-        mean_predictions = mean_predictions_stack[:, 0]
-
-        lower_ci_e = torch.Tensor(lower_ci_e).view(-1, 1)
-        lower_ci_e_stack = torch.stack((lower_ci_e, lower_ci_e, lower_ci_e, lower_ci_e, lower_ci_e, lower_ci_e,
-                                        lower_ci_e, lower_ci_e, lower_ci_e), dim=1).squeeze()
-        lower_ci_e_stack = scaler.inverse_transform(lower_ci_e_stack)
-        lower_ci_e = lower_ci_e_stack[:, 0]
-
-        upper_ci_e = torch.Tensor(upper_ci_e).view(-1, 1)
-        upper_ci_e_stack = torch.stack((upper_ci_e, upper_ci_e, upper_ci_e, upper_ci_e, upper_ci_e, upper_ci_e,
-                                        upper_ci_e, upper_ci_e, upper_ci_e), dim=1).squeeze()
-        upper_ci_e_stack = scaler.inverse_transform(upper_ci_e_stack)
-        upper_ci_e = upper_ci_e_stack[:, 0]
-
-        lower_ci_t = torch.Tensor(lower_ci_t).view(-1, 1)
-        lower_ci_t_stack = torch.stack((lower_ci_t, lower_ci_t, lower_ci_t, lower_ci_t, lower_ci_t, lower_ci_t,
-                                        lower_ci_t, lower_ci_t, lower_ci_t), dim=1).squeeze()
-        lower_ci_t_stack = scaler.inverse_transform(lower_ci_t_stack)
-        lower_ci_t = lower_ci_t_stack[:, 0]
-
-        upper_ci_t = torch.Tensor(upper_ci_t).view(-1, 1)
-        upper_ci_t_stack = torch.stack((upper_ci_t, upper_ci_t, upper_ci_t, upper_ci_t, upper_ci_t, upper_ci_t,
-                                        upper_ci_t, upper_ci_t, upper_ci_t), dim=1).squeeze()
-        upper_ci_t_stack = scaler.inverse_transform(upper_ci_t_stack)
-        upper_ci_t = upper_ci_t_stack[:, 0]
-
         plt.figure(figsize=(8, 12))
         plt.title("Well: {}. Coverage probability {:.2f}%".format(well, 100*empirical_coverage), fontsize=18)
         plt.ylabel("Depth", fontsize=16)
@@ -293,22 +251,26 @@ if __name__ == "__main__":
         plt.fill_betweenx(depths, lower_ci_e, upper_ci_e, color="red", alpha=0.2, label="95% CI epistemic")
         plt.ylim([depths.values[-1], depths.values[0]])
         plt.legend(loc="best", fontsize=12)
+
         # set x-lim for different wells:
-        if well == "25/4-10 S":
-            plt.xlim([150, 320])
-        elif well == "25/7-6":
-            plt.xlim([50, 420])
-        elif well == "30/6-26":
-            plt.xlim([70, 420])
-        elif well == "30/8-5 T2":
-            plt.xlim([0, 500])
+        if well == "30/8-5 T2":  # zoomed out
+            if zoomed_out:
+                plt.xlim([-8, 13])
+            else:
+                plt.xlim([-5, 5])
             plt.legend(loc="lower right", fontsize=12)
-        elif well == "30/1[1101-10":
-            plt.xlim([-110, 610])
+        if well == "25/4-10 S":
+            plt.xlim([-5, 7])
+        elif well == "25/7-6":
+            plt.xlim([-4, 4])
+        elif well == "30/6-26":
+            plt.xlim([-5, 5])
+        elif well == "30/11-10":
+            plt.xlim([-7, 7])
         elif well == "30/11-7":
-            plt.xlim([-25, 1000])
+            plt.xlim([-7, 9])
         elif well == "30/11-9 ST2":
-            plt.xlim([50, 400])
-        else: # 30/11-11 S
-            plt.xlim([40, 400])
+            plt.xlim([-3, 7])
+        else:  # 30/11-11 S
+            plt.xlim([-5, 11])
     plt.show()
