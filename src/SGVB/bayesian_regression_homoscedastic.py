@@ -198,24 +198,23 @@ if __name__ == "__main__":
 
     model.train(mode=False)
 
-    mse, mae = model.evaluate_performance(test_loader, B=100)
-    print("Performance over full test set:")
-    print("MSE: {:.5f} +/- {:.5f}".format(mse[0], mse[1]))
-    print("MAE: {:.5f} +/- {:.5f}".format(mae[0], mae[1]))
-
     # Training curves
     plt.figure()
     epochs = range(model.num_epochs)
     epochs = list(map(lambda x: x+1, epochs))
     plt.xticks(epochs)
-    plt.plot(epochs, training_loss, label="training")
-    plt.plot(epochs, validation_loss, label="validation")
-    plt.title("Loss curves - Homoscedastic SGVB", fontsize=18)
+    plt.plot(epochs, training_loss, label="Training")
+    plt.plot(epochs, validation_loss, label="Validation")
     plt.ylabel("ELBO loss", fontsize=16)
     plt.xlabel("Epoch", fontsize=16)
     plt.legend(fontsize=14)
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
+
+    mse, mae = model.evaluate_performance(test_loader, B=100)
+    print("Performance over full test set:")
+    print("MSE: {:.5f} +/- {:.5f}".format(mse[0], mse[1]))
+    print("MAE: {:.5f} +/- {:.5f}".format(mae[0], mae[1]))
 
     zoomed_out = False
 
