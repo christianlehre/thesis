@@ -197,23 +197,23 @@ if __name__ == "__main__":
 
     model.train(mode=False)
 
-    mse, mae = model.evaluate_performance(test_loader, B=100)
-    print("Performance metrics over full test set")
-    print("MSE: {:.5f} +/- {:.5f}".format(mse[0], mse[1]))
-    print("MAE: {:.5f} +/- {:.5f}".format(mae[0], mae[1]))
-
+    # Loss curves
     plt.figure()
     epochs = range(model.num_epochs)
     epochs = list(map(lambda x: x+1, epochs))
     plt.xticks(epochs)
-    plt.plot(epochs, train_loss, label="training")
-    plt.plot(epochs, val_loss, label="validation")
-    plt.title("Loss curves - Heteroscedastic SGVB", fontsize=18)
+    plt.plot(epochs, train_loss, label="Training")
+    plt.plot(epochs, val_loss, label="Validation")
     plt.ylabel("ELBO loss", fontsize=16)
     plt.xlabel("Epoch", fontsize=16)
     plt.legend(fontsize=14)
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
+
+    mse, mae = model.evaluate_performance(test_loader, B=100)
+    print("Performance metrics over full test set")
+    print("MSE: {:.5f} +/- {:.5f}".format(mse[0], mse[1]))
+    print("MAE: {:.5f} +/- {:.5f}".format(mae[0], mae[1]))
 
     path_to_folder_qualitative_analysis = "./data/qualitative_analysis/SGVB"
     if not os.path.exists(path_to_folder_qualitative_analysis):
