@@ -219,8 +219,6 @@ if __name__ == "__main__":
     # Predictions and credible intervals for wells in test set
     wells = list(set(df_test[well_variable]))
     for well in wells:
-        if well != "30/8-5 T2":
-            continue
         df_single_well = df_test[df_test[well_variable] == well]
         test_set = create_torch_dataset(df_single_well, target_variable, explanatory_variables)
         test_loader = torch.utils.data.DataLoader(dataset=test_set,
@@ -237,6 +235,20 @@ if __name__ == "__main__":
         lower_ci_t, upper_ci_t = credible_interval(mean_predictions, var_total, std_multiplier=2)
         empirical_coverage = coverage_probability(y_test, lower_ci_t, upper_ci_t)
         depths = df_single_well["DEPTH"]
+
+        # Save data for plotting prediction curves
+        path_to_prediction_curves = "./data/prediction_curves/MCDropout/Homoscedastic/"
+        well_name = well.replace(" ", "")
+        well_name = well_name.replace("/", "")
+        path_to_prediction_curves += well_name + ".npz"
+
+        np.savez(path_to_prediction_curves, predictions=mean_predictions,
+                 epistemic_ci=(lower_ci_e, upper_ci_e),
+                 total_ci=(lower_ci_t, upper_ci_t),
+                 depths=depths,
+                 y_test=y_test,
+                 empirical_coverage=empirical_coverage,
+                 well=well)
 
         plt.figure(figsize=(8, 12))
         plt.title("Well: {}. Coverage probability {:.2f}%".format(well, 100*empirical_coverage), fontsize=18)
