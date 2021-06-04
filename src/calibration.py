@@ -114,10 +114,7 @@ if __name__ == "__main__":
             coverage.append(empirical_coverage)
         coverages[i, :] = coverage
         plt.figure()
-        if epistemic:
-            plt.title("Epistemic Calibration well {}, {} {}".format(well, title, model_type))
-        else:
-            plt.title("Calibration for well {}, {} {} model".format(well, title, model_type))
+        plt.title("Well: {}".format(well))
         plt.plot(significance_levels, coverage, "r*", label="Empirical")
         plt.plot(significance_levels, significance_levels, "k--", label="Theoretical")
         plt.ylabel("Significance level")
@@ -142,11 +139,6 @@ if __name__ == "__main__":
 
     plt.figure(figsize=(12, 8))
 
-    if epistemic:
-        plt.title("Epistemic Calibration across wells, {} {}".format(title, model_type), fontsize=24)
-    else:
-        plt.title("Calibration across wells, {} {} model".format(title, model_type), fontsize=24)
-
     plt.plot(significance_levels, mean_coverage, "r*", label="Empirical mean")
     plt.fill_between(significance_levels, lower_ci, upper_ci, color="grey", alpha=0.5, label="95% CI")
     plt.plot(significance_levels, significance_levels, "k--", label="Theoretical")
@@ -165,4 +157,4 @@ if __name__ == "__main__":
     else:
         plt.savefig("./../../Figures/{}/{}/Calibration/average_coverage.pdf".format(model_type.replace(" ", ""), title))
 
-    plt.show()
+    #plt.show()
