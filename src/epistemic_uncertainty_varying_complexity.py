@@ -173,9 +173,15 @@ def plot_nested_dict(dictionary):
     inner_keys = list(dictionary.values())[0].keys()
     x_axis_values = list(map(str, dictionary.keys()))
     for model in inner_keys:
-        y_axis_values = [v[model] for v in dictionary.values()]
+        if model.startswith("MC Dropout"):
+            continue
 
-        plt.plot(x_axis_values, y_axis_values, label=model, linewidth=3)
+        y_axis_values = [v[model] for v in dictionary.values()]
+        if model == "SGVB Homoscedastic":
+            color = "#d62728"
+        else:
+            color = "#2ca02c"
+        plt.plot(x_axis_values, y_axis_values, color, label=model, linewidth=3)
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     plt.xlabel("Model complexity", fontsize=20)
@@ -240,7 +246,7 @@ if __name__ == "__main__":
     plot_zoomed = True
 
     if plot_zoomed:
-        plt.ylim([0, 0.3])
+        plt.ylim([0.05, 0.3])
         plt.tight_layout()
         plt.savefig("../../Figures/zoomed_epistemic_uncertainty_varying_complexity.pdf")
     else:
