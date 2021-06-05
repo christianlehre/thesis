@@ -186,7 +186,6 @@ def plot_nested_dict(dictionary):
     plt.yticks(fontsize=16)
     plt.xlabel("Model complexity", fontsize=20)
     plt.ylabel("Epistemic uncertainty", fontsize=20)
-    plt.title("Epistemic uncertainty for varying model complexity", fontsize=24)
     plt.legend(fontsize=16)
 
 
@@ -248,8 +247,8 @@ if __name__ == "__main__":
     if plot_zoomed:
         plt.ylim([0.05, 0.3])
         plt.tight_layout()
-        plt.savefig("../../Figures/zoomed_epistemic_uncertainty_varying_complexity.pdf")
+        plt.savefig("../../Figures/zoomed_epistemic_uncertainty_varying_complexity_without_mcdropout.pdf")
     else:
         plt.tight_layout()
-        plt.savefig("../../Figures/epistemic_uncertainty_varying_complexity.pdf")
+        plt.savefig("../../Figures/epistemic_uncertainty_varying_complexity_without_mcdropout.pdf")
     plt.show()
