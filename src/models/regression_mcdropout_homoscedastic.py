@@ -35,7 +35,7 @@ class MCDropoutHomoscedastic(nn.Module):
 
         self.num_epochs = 10
 
-        self.precision = 1.0  # TODO: tune this
+        self.precision = 1.0
         self.length_scale = 1  # standard normal prior on the parameters
         self.N = N
         self.M = M
