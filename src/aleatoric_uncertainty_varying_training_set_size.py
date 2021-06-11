@@ -12,6 +12,19 @@ from tqdm import tqdm
 
 
 def nested_dictionary(test_loader,input_dim, hidden_dim, output_dim, N, M, dropout_rate, path_to_models):
+    """
+
+    :param test_loader: torch dataloader object
+    :param input_dim: input dimension
+    :param hidden_dim: dimension of hidden layers
+    :param output_dim: output dimension
+    :param N: number of samples
+    :param M: number of mini-batches/iterations in a single epoch
+    :param dropout_rate: dropout rate
+    :param path_to_models: path to models (str)
+    :return: nested dictionary containing the epistemic uncertainty for different fractions of the dataset for
+    all models
+    """
     uncertainty_over_all_training_size = {}
     # Iterate over training set size
     for dir in tqdm(os.listdir(path_to_models)):
@@ -64,6 +77,14 @@ def nested_dictionary(test_loader,input_dim, hidden_dim, output_dim, N, M, dropo
 
 
 def save_dictionary(dictionary, path_to_dictionary):
+    """
+    Save nested dictionary to file
+
+    :param dictionary: nested dictionary
+    :param path_to_dictionary: path to dictionary (str)
+    :return: nested dictionary containing the epistemic uncertainty for different fractions of the dataset for
+    all models
+    """
     try:
         file = open(path_to_dictionary, 'w')
         file.write(str(dictionary))
@@ -74,6 +95,12 @@ def save_dictionary(dictionary, path_to_dictionary):
 
 
 def load_dictionary(path_to_dictionary):
+    """
+    Load dictionary
+
+    :param path_to_dictionary: (str)
+    :return: dictionary
+    """
     file = open(path_to_dictionary, "r")
     content = file.read()
     dictionary = ast.literal_eval(content)
@@ -82,6 +109,12 @@ def load_dictionary(path_to_dictionary):
 
 
 def plot_nested_dict(dictionary):
+    """
+    Plot nested dictionary
+
+    :param dictionary: (str)
+    :return: None
+    """
     plt.figure(figsize=(12, 8))
 
     inner_keys = list(dictionary.values())[0].keys()
