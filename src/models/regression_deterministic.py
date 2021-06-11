@@ -229,10 +229,9 @@ class RegressionModel(nn.Module):
         Evaluate model performance on the full test set in terms of the following performance metrics
         - MSE
         - MAE
-        - MAPE
 
         :param test_loader: torch dataloader object for the test set
-        :return: triplet containing the performance metrics, (mse, mae, mape)
+        :return: tuple containing the performance metrics, (mse, mae)
         """
         for x, y in test_loader:
             x_test, y_test = x, y
@@ -246,17 +245,14 @@ class RegressionModel(nn.Module):
         mse = mse.item()
         mae = torch.mean(torch.abs(predictions_test - y_test))
         mae = mae.item()
-        mape = 100 * torch.mean(torch.abs(torch.div(predictions_test - y_test, y_test)))
-        mape = mape.item()
 
-        return mse, mae, mape
+        return mse, mae
 
     def wellwise_performance(self, test_df):
         """
         Evaluate model performance for each well in the test dataset in terms of the following performance metrics
         - MSE
         - MAE
-        - MAPE
 
         :param test_df: pandas dataframe containing the test dataset
         :return: 2-dimensional dictionary with wells as keys, and values as dictionaries containing
@@ -281,11 +277,9 @@ class RegressionModel(nn.Module):
 
             mse = torch.mean(torch.pow(predictions_test - y_test, 2))
             mae = torch.mean(torch.abs(predictions_test - y_test))
-            mape = 100 * torch.mean(torch.abs(torch.div(predictions_test - y_test, y_test)))
 
             well_dict['mse'] = mse.item()
             well_dict['mae'] = mae.item()
-            well_dict['mape'] = mape.item()
 
             performance_dict[well] = well_dict
 
@@ -446,11 +440,10 @@ if __name__ == "__main__":
     plt.plot(range(model.num_epochs), validation_loss, label="validation loss")
     plt.legend()
 
-    mse, mae, mape = model.evaluate_performance(test_loader)
+    mse, mae = model.evaluate_performance(test_loader)
     print("Performance on full test set: ")
     print("MSE: {:.5f}".format(mse))
     print("MAE: {:.5f}".format(mae))
-    print("MAPE: {:.5f}%".format(mape))
 
     # well-wise performance
     performance_dict = model.wellwise_performance(df_test)
