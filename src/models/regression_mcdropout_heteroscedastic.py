@@ -58,7 +58,7 @@ class MCDropoutHeteroscedastic(nn.Module):
         Forward pass of the model, calculating output of the model
 
         :param input: matrix of samples, dim = (num samples, num predictors)
-        :return: output of the neural network, dim = (1, num samples)
+        :return: tuple of prediction and log-variance of the multi-headed network (prediction, log_variance)
         """
         x_ = self.fc1(x)
         x_ = self.bn1(x_)
