@@ -1,5 +1,6 @@
 import os
 import ast
+import pandas as pd
 from collections import OrderedDict
 from matplotlib import pyplot as plt
 from src.dataloader.dataloader import Dataloader
@@ -22,7 +23,20 @@ from src.SGVB.bayesian_homoscedastic_complex import BayesianRegressorHomoscedast
 from src.SGVB.bayesian_heteroscedastic_complex import BayesianRegressor as Heteroscedastic_SGVB_Complex
 
 
-def nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, layers, N, M, dropout_rate, path_to_models):
+def nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, layers, M, dropout_rate, path_to_models):
+    """
+    Creates a nested dictionary of the epistemic uncertainty for a range of model complexities for all the considered
+    model formulations. The outer keys are the complexities, while the inner keys are the different models.
+
+    :param test_loader: torch dataloader object
+    :param input_dim: input dimension
+    :param hidden_dim: dimension of hidden layers
+    :param output_dim: output dimension
+    :param M: number of mini-batches/iterations in a single epoch
+    :param dropout_rate: dropout rate
+    :param path_to_models: path to models (str)
+    :return: nested dictionary containing the epistemic uncertainty for different model complexities for the SGVB models
+    """
     uncertainty_over_all_complexities = {}
     # Iterate over all model complexities
     for dir in os.listdir(path_to_models): # linear, intermediate, complex
@@ -97,6 +111,13 @@ def nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, layers, N,
 
 
 def save_dictionary(dictionary, path_to_dictionary):
+    """
+    Save dictionary to file
+
+    :param dictionary: dict
+    :param path_to_dictionary: str
+    :return:
+    """
     try:
         file = open(path_to_dictionary, 'w')
         file.write(str(dictionary))
@@ -107,6 +128,12 @@ def save_dictionary(dictionary, path_to_dictionary):
 
 
 def load_dictionary(path_to_dictionary):
+    """
+    Load dictionary from file
+
+    :param path_to_dictionary: str
+    :return: dict
+    """
     file = open(path_to_dictionary, "r")
     content = file.read()
     dictionary = ast.literal_eval(content)
@@ -114,6 +141,12 @@ def load_dictionary(path_to_dictionary):
     return dictionary
 
 def plot_nested_dict(dictionary):
+    """
+    Plot nested dictionary
+
+    :param dictionary: dict
+    :return: None
+    """
     plt.figure(figsize=(12, 8))
 
     inner_keys = list(dictionary.values())[0].keys()
