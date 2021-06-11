@@ -29,21 +29,44 @@ class Preprocessing:
         self.window = 4
 
     def load_data(self):
+        """
+        Load raw dataset
+
+        :return: pandas dataframe
+        """
         data = pd.read_csv(self.path_to_raw_data, sep=",")
         return data
 
     def feature_selection(self, df):
+        """
+        Select relevant features from the dataset
+
+        :param df: pandas dataframe
+        :return: pandas dataframe
+        """
         cols_in_df = df.columns.values
         assert all([col in cols_in_df for col in self.list_of_variables]), \
             "One/more of the selected features are not in the dataset"
         return df[self.list_of_variables]
 
     def clean_rows_target(self, df):
+        """
+        Clean the dataset, remove rows with poor measurements
+
+        :param df: pandas dataframe
+        :return: pandas dataframe
+        """
         df.dropna(subset=[self.target_variable], inplace=True)
         df.drop(df[(df['BADACS'] == 1) | (df['BADACS'].isnull())].index, axis=0, inplace=True)
         return df
 
     def scale_features_wellwise(self, df):
+        """
+        Perform the well-wise scaling of the features
+
+        :param df: pandas dataframe
+        :return: pandas dataframe
+        """
         new_df = df.copy(deep=True)
         new_df.drop(["well_name", "DEPTH"], axis=1, inplace=True)
         wells = df['well_name'].unique()
@@ -55,6 +78,12 @@ class Preprocessing:
         return new_df
 
     def validate_scaling(self, df):
+        """
+        Helper function to validate the scaling
+
+        :param df: pandas dataframe
+        :return: None
+        """
         wells = df['well_name'].unique()
         for well in wells:
             data_pr_well = df[df['well_name'] == well]
@@ -67,7 +96,13 @@ class Preprocessing:
                     print('mean: {}, std: {}'.format(mean, std))
                     print('')
 
-    def mean_imputer(self, df): # add column as argument, as in the below feature engineering?
+    def mean_imputer(self, df):
+        """
+        Impute missing values using the mean value of each feature
+
+        :param df: pandas dataframe
+        :return: pandas dataframe
+        """
         for col in self.numerical_variables:
             assert col in df.columns.values, "Column {} not in dataset".format(col)
             if df[col].isna().any():
@@ -76,6 +111,13 @@ class Preprocessing:
         return df
 
     def feature_engineering_add_gradients(self, df, columns=None):
+        """
+        Add gradients of each feature to the feature set
+
+        :param df: pandas dataframe
+        :param columns: list of feature to add gradient to
+        :return: pandas dataframe
+        """
         if columns is None:
             columns = df.columns.values
 
@@ -87,6 +129,13 @@ class Preprocessing:
         return df, gradient_cols
 
     def feature_engineering_add_windows(self, df, columns=None):
+        """
+        Add rolling window features for the mean, max and min value to the feature set
+
+        :param df: pandas dataframe
+        :param columns: list of features to add rolling window functions to
+        :return:
+        """
         if columns is None:
             columns = df.columns.values
 
@@ -102,9 +151,20 @@ class Preprocessing:
         return df, window_cols
 
     def save_dataset(self, df):
+        """
+        Save dataset
+
+        :param df: pandas dataframe
+        :return: None
+        """
         df.to_csv(self.path_to_preprocessed_data, sep=";", index=False)
 
     def preprocessing_main(self):
+        """
+        Main function for performing the preprocessing scheme
+
+        :return: pandas dataframe
+        """
         data = self.load_data()
         print('Dimensions of original data: {}'.format(data.shape))
         data = self.clean_rows_target(data)
