@@ -1,13 +1,10 @@
 import os
 import time
-import torch
 import torch.nn as nn
-import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from src.dataloader.dataloader import Dataloader
 from src.utils import *
-from pickle import load
 
 class MCDropoutHeteroscedastic(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, N, M, dropout_rate):
@@ -39,7 +36,7 @@ class MCDropoutHeteroscedastic(nn.Module):
         self.M = M
 
         self.num_epochs = 10
-        self.precision = 1.0 # TODO: tune this
+        self.precision = 1.0
         self.length_scale = 1  # specifying a standard normal prior for the parameters
         self.reg_dropout = (1-self.dropout_rate)*self.length_scale**2 / (2*self.N*self.precision)
         self.reg_final = self.length_scale**2 / (2*self.N*self.precision)
