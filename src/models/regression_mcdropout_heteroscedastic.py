@@ -123,7 +123,7 @@ class MCDropoutHeteroscedastic(nn.Module):
 
         :param test_loader: torch dataloader object for the test set
         :param B: number of stochastic forward passes
-        :return: triplet containing the performance metrics, (mse, mae, mape)
+        :return: tuple containing the performance metrics, (mse, mae)
         """
         x_test, y_test = unpack_dataset(test_loader)
         mse, mae = [], []
