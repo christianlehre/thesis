@@ -54,6 +54,12 @@ class MCDropoutHeteroscedastic(nn.Module):
         ], lr=self.lr)
 
     def forward(self, x):
+        """
+        Forward pass of the model, calculating output of the model
+
+        :param input: matrix of samples, dim = (num samples, num predictors)
+        :return: output of the neural network, dim = (1, num samples)
+        """
         x_ = self.fc1(x)
         x_ = self.bn1(x_)
         x_ = self.relu(x_)
@@ -70,12 +76,28 @@ class MCDropoutHeteroscedastic(nn.Module):
         return yhat, log_var
 
     def loss(self, y, y_pred, log_var): # negative log-likelihood
+        """
+        Compute heteroscedastic NLL loss
+
+        :param y: true value of response
+        :param y_pred: predicted value of response
+        :param log_var: log-variance (aleatoric)
+        :return: NLL loss (scalar)
+        """
         neg_loglik = 0.5*len(y)*np.log(2*np.pi) + 0.5*(log_var.sum() +
                                                        torch.div(torch.pow(y - y_pred, 2), torch.exp(log_var)).sum())
 
         return neg_loglik
 
     def train_model(self, train_loader, val_loader):
+        """
+        Train the model using the partial training set,i.e. excluding the validation set,
+        estimate the test loss during training using the validation set
+
+        :param train_loader: torch dataloader object for the training set, excluding the validation set
+        :param val_loader: torch dataloader object for the validation set
+        :return: tuple containig the training and validation loss for each epoch
+        """
         train_loss, val_loss = [], []
         for epoch in range(self.num_epochs):
             for x_train, y_train in train_loader:
@@ -97,6 +119,14 @@ class MCDropoutHeteroscedastic(nn.Module):
         return train_loss, val_loss
 
     def evaluate_performance(self, test_loader, B=100):
+        """
+        Evaluate model performance on the full test set in terms of the following performance metrics
+        - MSE
+        - MAE
+
+        :param test_loader: torch dataloader object for the test set
+        :return: triplet containing the performance metrics, (mse, mae, mape)
+        """
         x_test, y_test = unpack_dataset(test_loader)
         mse, mae = [], []
         for _ in range(B):
@@ -119,6 +149,13 @@ class MCDropoutHeteroscedastic(nn.Module):
         return mse_tuple, mae_tuple
 
     def aleatoric_epistemic_variance(self, test_loader, B=100):
+        """
+        Estimate epistemic, aleatoric and total predictive uncertainty
+
+        :param test_loader: torch dataloader object containing the test set
+        :param B: Number of stochastic forward passes
+        :return: mean predictions, epistemic variance, aleatoric variance, total predictive variance
+        """
         x_test, y_test = unpack_dataset(test_loader)
         predictions_B = np.zeros((B, len(y_test)))
         log_vars_B = np.zeros_like(predictions_B)
@@ -171,7 +208,7 @@ if __name__ == "__main__":
     model = MCDropoutHeteroscedastic(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, N=N, M=M,
                                      dropout_rate=dropout_rate)
     training_configuration = "mcdropout_heteroscedastic_dropout_"+str(model.dropout_rate)+"_lr_"+str(model.lr)+"_numepochs_"+str(model.num_epochs)+"_hiddenunits_"\
-                             +str(hidden_dim)+"_hiddenlayers_2"+"_batch_size_"+str(batch_size)
+                             +str(hidden_dim)+"_hiddenlayers_3"+"_batch_size_"+str(batch_size)
     training_configuration = training_configuration.replace(".", "")
     path_to_model = "./data/models/regression/"
     path_to_model += training_configuration + ".pt"
