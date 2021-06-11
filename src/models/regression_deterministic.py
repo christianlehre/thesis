@@ -124,10 +124,10 @@ class RegressionModel(nn.Module):
 
     def forward_homoscedastic(self, input):
         """
-        Forward pass of the model, calculating the output of the model
+        Forward pass of the homoscedastic model, calculating the output of the model
 
         :param input: matrix of samples, dim = (num samples, num predictors)
-        :return: output of the neural network, dim = (1,number of samples in input)
+        :return: output of the neural network, dim = (1, num samples)
         """
         x = input
         for i, l in enumerate(self.linear_layers[:-1]):
@@ -141,11 +141,24 @@ class RegressionModel(nn.Module):
         return x
 
     def loss_homoscedastic(self, y, y_pred):
+        """
+        Compute homoscedastic NLL loss for the deterministic model
+
+        :param y: true value of response
+        :param y_pred: predicted value of response
+        :return: NLL loss (scalar)
+        """
         neg_loglik = 0.5*len(y)*(np.log(2*np.pi) + self.log_var) + 0.5*torch.div(torch.pow(y - y_pred, 2),
                                                                                  torch.exp(self.log_var)).sum()
         return neg_loglik/self.precision
 
     def forward_heteroscedastic(self, input):
+        """
+        Forward pass of the heteroscedastic model, calculating the output of the model
+
+        :param input: matrix of samples, dim = (num samples, num predictors)
+        :return: output of the neural network, dim = (1, num samples)
+        """
         x = input
         for i, l in enumerate(self.linear_layers[:-1]):
             bn_layer = self.bn_layers[i]
@@ -159,6 +172,14 @@ class RegressionModel(nn.Module):
         return y_hat, log_var
 
     def loss_heteroscedastic(self, y, y_pred, log_var):
+        """
+        Compute heteroscedastic NLL loss for the deterministic model
+
+        :param y: true value of response
+        :param y_pred: predicted value of response
+        :param log_var: log-variance (aleatoric)
+        :return: NLL loss (scalar)
+        """
         neg_loglik = 0.5 * len(y) * np.log(2 * np.pi) + 0.5 * (log_var.sum() +
                                                                torch.div(torch.pow(y - y_pred, 2),
                                                                          torch.exp(log_var)).sum())
@@ -308,40 +329,6 @@ class RegressionModel(nn.Module):
         plt.legend(bbox_to_anchor=(1.05, 1), loc='best')
         plt.tight_layout()
 
-    def plot_predictions_velocity_ratio_test_wells(self, test_df):
-        test_wells = list(set(test_df["well_name"]))
-
-        fig, axs = plt.subplots(1, len(test_wells), figsize=(15, 10), sharey=False)
-        for ic, well in enumerate(test_wells):
-            test_data_well = test_df[test_df["well_name"] == well]
-            acs_test = test_data_well["ACS"]
-            x_test = test_data_well[explanatory_variables]
-            depths = x_test["DEPTH"]
-            ac_test = x_test["AC"]
-
-            ratio_test = np.divide(np.array(ac_test), np.array(acs_test))
-
-            x_test = torch.tensor(x_test.values, dtype=torch.float32)
-
-            if self.heteroscedastic:
-                predictions, _ = self.forward(x_test)
-                acs_predictions = predictions.detach().numpy()
-            else:
-                acs_predictions = self.forward(x_test).detach().numpy()
-
-            ratio_predictions = np.divide(np.array(ac_test), np.array(acs_predictions[:, 0]))
-
-            axs[ic].set_ylim(depths.values[-1], depths.values[0])
-            axs[ic].plot(ratio_test, depths, ".", label="True")
-            axs[ic].plot(ratio_predictions, depths, ".", label="Predictions")
-
-            axs[ic].set_title(well)
-            axs[ic].set_xlabel("AC/ACS")
-        axs[0].set_ylabel("Depths")
-        plt.legend(loc="best",bbox_to_anchor=(1.05, 1))
-        plt.tight_layout()
-
-
 
 if __name__ == "__main__":
     preprocessed_data_fname = "preprocessed_regression.csv"
@@ -470,6 +457,5 @@ if __name__ == "__main__":
 
     # plot predictions for all wells in test set
     model.plot_predictions_test_wells(df_test)
-    model.plot_predictions_velocity_ratio_test_wells(df_test)
 
     plt.show()
