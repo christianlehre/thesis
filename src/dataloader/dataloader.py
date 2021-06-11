@@ -26,24 +26,40 @@ class Dataloader:
         self.batch_size = batch_size
 
     def training_loader_full(self):
+        """
+        creates a torch dataloader object for the full training set
+        :return: torch dataloader object
+        """
         return torch.utils.data.DataLoader(dataset=self.training_set_full,
                                            batch_size=self.batch_size,
                                            shuffle=True,
                                            drop_last=True)
 
     def training_loader(self):
+        """
+        creates a torch dataloader object for the partial training set, excluding the validation set
+        :return: torch dataloader object
+        """
         return torch.utils.data.DataLoader(dataset=self.training_set,
                                            batch_size=self.batch_size,
                                            shuffle=True,
                                            drop_last=True)
 
     def validation_loader(self):
+        """
+        creates a torch dataloader object for the validation set
+        :return: torch dataloader object
+        """
         return torch.utils.data.DataLoader(dataset=self.validation_set,
                                            batch_size=self.batch_size,
                                            shuffle=True,
                                            drop_last=True)
 
     def test_loader(self):
+        """
+        creates a torch dataloader object for the test set
+        :return: torch dataloader object
+        """
         return torch.utils.data.DataLoader(dataset=self.test_set,
                                            batch_size=len(self.test_set),
                                            shuffle=False)
