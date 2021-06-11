@@ -1,36 +1,42 @@
 import os
 import ast
+import pandas as pd
 from collections import OrderedDict
 from matplotlib import pyplot as plt
 from src.dataloader.dataloader import Dataloader
 from src.utils import *
 
 # import linear models
-from src.models.mcdropout_homoscedastic_linear import MCDropoutHomoscedastic as Homoscedastic_MCDropout_Linear
-from src.models.mcdropout_heteroscedastic_linear import MCDropoutHeteroscedastic as Heteroscedastic_MCDropout_Linear
 from src.SGVB.bayesian_homoscedastic_linear import BayesianRegressorHomoscedastic as Homoscedastic_SGVB_Linear
 from src.SGVB.bayesian_heteroscedastic_linear import BayesianRegressor as Heteroscedastic_SGVB_Linear
 
 # import single layer models
-from src.models.mcdropout_homoscedastic_single import MCDropoutHomoscedastic as Homoscedastic_MCDropout_Single
-from src.models.mcdropout_heteroscedastic_single import MCDropoutHeteroscedastic as Heteroscedastic_MCDropout_Single
 from src.SGVB.bayesian_homoscedastic_single import BayesianRegressorHomoscedastic as Homoscedastic_SGVB_Single
 from src.SGVB.bayesian_heteroscedastic_single import BayesianRegressor as Heteroscedastic_SGVB_Single
 
 # import intermediate models
-from src.models.regression_mcdropout_homoscedastic import MCDropoutHomoscedastic as Homoscedastic_MCDropout_Intermediate
-from src.models.regression_mcdropout_heteroscedastic import MCDropoutHeteroscedastic as Heteroscedastic_MCDropout_Intermediate
 from src.SGVB.bayesian_regression_homoscedastic import BayesianRegressorHomoscedastic as Homoscedastic_SGVB_Intermediate
 from src.SGVB.bayesian_regression_heteroscedastic import BayesianRegressor as Heteroscedastic_SGVB_Intermediate
 
 # import complex models
-from src.models.mcdropout_homoscedastic_complex import MCDropoutHomoscedastic as Homoscedastic_MCDropout_Complex
-from src.models.mcdropout_heteroscedastic_complex import MCDropoutHeteroscedastic as Heteroscedastic_MCDropout_Complex
 from src.SGVB.bayesian_homoscedastic_complex import BayesianRegressorHomoscedastic as Homoscedastic_SGVB_Complex
 from src.SGVB.bayesian_heteroscedastic_complex import BayesianRegressor as Heteroscedastic_SGVB_Complex
 
 
-def nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, layers, N, M, dropout_rate, path_to_models):
+def nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, layers, M, dropout_rate, path_to_models):
+    """
+    Creates a nested dictionary of the epistemic uncertainty for a range of model complexities for both SGVB models.
+    The outer keys are the complexities, while the inner keys are the different models.
+
+    :param test_loader: torch dataloader object
+    :param input_dim: input dimension
+    :param hidden_dim: dimension of hidden layers
+    :param output_dim: output dimension
+    :param M: number of mini-batches/iterations in a single epoch
+    :param dropout_rate: dropout rate
+    :param path_to_models: path to models (str)
+    :return: nested dictionary containing the epistemic uncertainty for different model complexities for the SGVB models
+    """
     uncertainty_over_all_complexities = {}
     # Iterate over all model complexities
     for dir in os.listdir(path_to_models): # linear, intermediate, complex
@@ -43,48 +49,7 @@ def nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, layers, N,
                 continue
 
             # Initialize models
-            if model_path.startswith("mcdropout"):
-                if "homoscedastic" in model_path.split("_"):
-                    model_type = "MC Dropout Homoscedastic"
-                    if dir == "linear":
-                        model = Homoscedastic_MCDropout_Linear(input_dim=input_dim, output_dim=output_dim, N=N, M=M,
-                                                               dropout_rate=dropout_rate)
-
-                    elif dir == "single_layer":
-                        model = Homoscedastic_MCDropout_Single(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, N=N, M=M,
-                                                               dropout_rate=dropout_rate)
-
-                    elif dir == "intermediate":
-                        model = Homoscedastic_MCDropout_Intermediate(input_dim=input_dim, hidden_dim=hidden_dim,
-                                                                     output_dim=output_dim, N=N, M=M,
-                                                                     dropout_rate=dropout_rate)
-                    elif dir == "complex":
-                        model = Homoscedastic_MCDropout_Complex(layers=layers, N=N, M=M, dropout_rate=dropout_rate)
-                    else:
-                        print("Neither linear, single layer, intermediate nor complex homoscedastic mcdropout model found")
-
-                elif "heteroscedastic" in model_path.split("_"):
-                    model_type = "MC Dropout Heteroscedastic"
-                    if dir == "linear":
-                        model = Heteroscedastic_MCDropout_Linear(input_dim=input_dim, output_dim=output_dim, N=N, M=M,
-                                                                 dropout_rate=dropout_rate)
-
-                    elif dir == "single_layer":
-                        model = Heteroscedastic_MCDropout_Single(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, N=N, M=M,
-                                                               dropout_rate=dropout_rate)
-
-                    elif dir == "intermediate":
-                        model = Heteroscedastic_MCDropout_Intermediate(input_dim=input_dim, hidden_dim=hidden_dim,
-                                                                     output_dim=output_dim, N=N, M=M,
-                                                                     dropout_rate=dropout_rate)
-                    elif dir == "complex":
-                        model = Heteroscedastic_MCDropout_Complex(layers=layers, N=N, M=M, dropout_rate=dropout_rate)
-                    else:
-                        print("Neither linear, single layer, intermediate nor complex heteroscedastic mcdropout model found")
-                else:
-                    print("Neither homoscedastic nor heteroscedastic mcdropout model found")
-
-            elif model_path.startswith("sgvb"):
+            if model_path.startswith("sgvb"):
                 if "homoscedastic" in model_path.split("_"):
                     model_type = "SGVB Homoscedastic"
                     if dir == "linear":
@@ -126,7 +91,7 @@ def nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, layers, N,
                     print("Neither homoscedastic nor heteroscedastic SGVB model found")
 
             else:
-                print("Neither MC Dropout nor SGVB model found")
+                print("No SGVB models found")
 
             path_to_model = os.path.join(path_to_models_with_same_complexity, model_path)
 
@@ -134,11 +99,6 @@ def nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, layers, N,
             model.load_state_dict(torch.load(path_to_model))
 
             model.eval()
-            for m in model.modules():
-                if m.__class__.__name__.startswith("Dropout") and model_type.startswith("MC"):
-                    m.train()
-                else:
-                    m.eval()
 
             _, var_epistemic, _, _ = model.aleatoric_epistemic_variance(test_loader, B=100)
             std_epistemic = np.sqrt(var_epistemic)
@@ -151,6 +111,13 @@ def nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, layers, N,
 
 
 def save_dictionary(dictionary, path_to_dictionary):
+    """
+    Save dictionary to file
+
+    :param dictionary: dict
+    :param path_to_dictionary: str
+    :return:
+    """
     try:
         file = open(path_to_dictionary, 'w')
         file.write(str(dictionary))
@@ -161,6 +128,12 @@ def save_dictionary(dictionary, path_to_dictionary):
 
 
 def load_dictionary(path_to_dictionary):
+    """
+    Load dictionary from file
+
+    :param path_to_dictionary: str
+    :return: dict
+    """
     file = open(path_to_dictionary, "r")
     content = file.read()
     dictionary = ast.literal_eval(content)
@@ -168,14 +141,17 @@ def load_dictionary(path_to_dictionary):
     return dictionary
 
 def plot_nested_dict(dictionary):
+    """
+    Plot nested dictionary
+
+    :param dictionary: dict
+    :return: None
+    """
     plt.figure(figsize=(12, 8))
 
     inner_keys = list(dictionary.values())[0].keys()
     x_axis_values = list(map(str, dictionary.keys()))
     for model in inner_keys:
-        if model.startswith("MC Dropout"):
-            continue
-
         y_axis_values = [v[model] for v in dictionary.values()]
         if model == "SGVB Homoscedastic":
             color = "#d62728"
@@ -242,13 +218,13 @@ if __name__ == "__main__":
 
     plot_nested_dict(dict_to_plot)
 
-    plot_zoomed = True
+    plot_zoomed = False
 
     if plot_zoomed:
         plt.ylim([0.05, 0.3])
         plt.tight_layout()
-        plt.savefig("../../Figures/zoomed_epistemic_uncertainty_varying_complexity_without_mcdropout.pdf")
+        plt.savefig("../../Figures/zoomed_epistemic_uncertainty_varying_complexity.pdf")
     else:
         plt.tight_layout()
-        plt.savefig("../../Figures/epistemic_uncertainty_varying_complexity_without_mcdropout.pdf")
+        plt.savefig("../../Figures/epistemic_uncertainty_varying_complexity.pdf")
     plt.show()

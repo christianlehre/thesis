@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from torch.nn import functional as F
 
 class BayesianLinear(nn.Module):
     """
@@ -46,17 +45,27 @@ class BayesianLinear(nn.Module):
         self.log_prior_b = self.prior_weights.log_prob
 
     def reparametrize(self, mu, rho):  # sample weights/biases of the linear layer
+        """
+        Perform reparametrization trick to sample paramters
+
+        :param mu: variational mean
+        :param rho: variational parameter for the variance
+        :return: sampled parameter
+        """
         sigma = torch.log1p(torch.exp(rho))
         eps = torch.randn_like(sigma)
         w = mu + torch.mul(sigma, eps)
         return w
 
-    def kl_divergence(self, z, mu_theta, rho_theta, log_prior):  # KL div between variational dist and prior
-        log_prior = log_prior(z)
-        log_prob_q = torch.distributions.normal.Normal(mu_theta, torch.log1p(torch.exp(rho_theta))).log_prob(z)
-        return (log_prob_q - log_prior).sum() / self.n_batches
 
-    def kl_div_q_prior(self, mu_theta, rho_theta):  # as derived analytically.
+    def kl_div_q_prior(self, mu_theta, rho_theta):
+        """
+        Computes the KL divergence between the prior and variational distribution of the paramter
+
+        :param mu_theta: variational mean
+        :param rho_theta: parameter for the variational variance
+        :return: KL divergence between prior and variational distribution
+        """
         sigma_theta = torch.log1p(torch.exp(rho_theta))
 
         term1 = 2*torch.log(torch.div(self.prior_sigma, sigma_theta)) - 1
@@ -66,6 +75,12 @@ class BayesianLinear(nn.Module):
         return res
 
     def forward(self, x):  # sample from the distribution of parameters every forward pass
+        """
+        Forward pass for the Bayesian feedforward layer
+
+        :param x: input instance
+        :return: output of the layer
+        """
         w = self.reparametrize(self.weight_mu, self.weight_rho)
         if self.include_bias:
             b = self.reparametrize(self.bias_mu, self.bias_rho)

@@ -4,6 +4,12 @@ from matplotlib import pyplot as plt
 
 
 def load_data(path_to_data):
+    """
+    Load data to plot the predictions curves presented in the thesis
+
+    :param path_to_data: str
+    :return: predictions, epistemic_ci (tuple), total_ci (tuple), depths, y_test, empirical_coverage, well
+    """
     with np.load(path_to_data) as data:
         predictions = data["predictions"]
         epistemic_ci = data["epistemic_ci"]
@@ -16,6 +22,18 @@ def load_data(path_to_data):
 
 
 def plot_prediction_curve(predictions, y_test, depths, epistemic_ci, total_ci, empirical_coverage, well):
+    """
+    Plot prediction curves for a single well
+
+    :param predictions: predictions from a given model
+    :param y_test: ground-truth values
+    :param depths: depths
+    :param epistemic_ci: (lower bound, upper bound) of the epistemic credible interval
+    :param total_ci: (lower bound, upper bound) of the total credible interval
+    :param empirical_coverage: empirical coverage probability
+    :param well: name of the well (str)
+    :return: None
+    """
     lower_ci_e = epistemic_ci[0]
     upper_ci_e = epistemic_ci[1]
     lower_ci_t = total_ci[0]

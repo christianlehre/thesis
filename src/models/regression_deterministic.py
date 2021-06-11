@@ -124,10 +124,10 @@ class RegressionModel(nn.Module):
 
     def forward_homoscedastic(self, input):
         """
-        Forward pass of the model, calculating the output of the model
+        Forward pass of the homoscedastic model, calculating the output of the model
 
         :param input: matrix of samples, dim = (num samples, num predictors)
-        :return: output of the neural network, dim = (1,number of samples in input)
+        :return: output of the neural network, dim = (1, num samples)
         """
         x = input
         for i, l in enumerate(self.linear_layers[:-1]):
@@ -141,11 +141,24 @@ class RegressionModel(nn.Module):
         return x
 
     def loss_homoscedastic(self, y, y_pred):
+        """
+        Compute homoscedastic NLL loss for the deterministic model
+
+        :param y: true value of response
+        :param y_pred: predicted value of response
+        :return: NLL loss (scalar)
+        """
         neg_loglik = 0.5*len(y)*(np.log(2*np.pi) + self.log_var) + 0.5*torch.div(torch.pow(y - y_pred, 2),
                                                                                  torch.exp(self.log_var)).sum()
         return neg_loglik/self.precision
 
     def forward_heteroscedastic(self, input):
+        """
+        Forward pass of the heteroscedastic model, calculating the output of the model
+
+        :param input: matrix of samples, dim = (num samples, num predictors)
+        :return: output of the neural network, dim = (1, num samples)
+        """
         x = input
         for i, l in enumerate(self.linear_layers[:-1]):
             bn_layer = self.bn_layers[i]
@@ -159,6 +172,14 @@ class RegressionModel(nn.Module):
         return y_hat, log_var
 
     def loss_heteroscedastic(self, y, y_pred, log_var):
+        """
+        Compute heteroscedastic NLL loss for the deterministic model
+
+        :param y: true value of response
+        :param y_pred: predicted value of response
+        :param log_var: log-variance (aleatoric)
+        :return: NLL loss (scalar)
+        """
         neg_loglik = 0.5 * len(y) * np.log(2 * np.pi) + 0.5 * (log_var.sum() +
                                                                torch.div(torch.pow(y - y_pred, 2),
                                                                          torch.exp(log_var)).sum())
@@ -208,10 +229,9 @@ class RegressionModel(nn.Module):
         Evaluate model performance on the full test set in terms of the following performance metrics
         - MSE
         - MAE
-        - MAPE
 
         :param test_loader: torch dataloader object for the test set
-        :return: triplet containing the performance metrics, (mse, mae, mape)
+        :return: tuple containing the performance metrics, (mse, mae)
         """
         for x, y in test_loader:
             x_test, y_test = x, y
@@ -225,17 +245,14 @@ class RegressionModel(nn.Module):
         mse = mse.item()
         mae = torch.mean(torch.abs(predictions_test - y_test))
         mae = mae.item()
-        mape = 100 * torch.mean(torch.abs(torch.div(predictions_test - y_test, y_test)))
-        mape = mape.item()
 
-        return mse, mae, mape
+        return mse, mae
 
     def wellwise_performance(self, test_df):
         """
         Evaluate model performance for each well in the test dataset in terms of the following performance metrics
         - MSE
         - MAE
-        - MAPE
 
         :param test_df: pandas dataframe containing the test dataset
         :return: 2-dimensional dictionary with wells as keys, and values as dictionaries containing
@@ -260,11 +277,9 @@ class RegressionModel(nn.Module):
 
             mse = torch.mean(torch.pow(predictions_test - y_test, 2))
             mae = torch.mean(torch.abs(predictions_test - y_test))
-            mape = 100 * torch.mean(torch.abs(torch.div(predictions_test - y_test, y_test)))
 
             well_dict['mse'] = mse.item()
             well_dict['mae'] = mae.item()
-            well_dict['mape'] = mape.item()
 
             performance_dict[well] = well_dict
 
@@ -307,40 +322,6 @@ class RegressionModel(nn.Module):
         axs[0].set_ylabel("Depth")
         plt.legend(bbox_to_anchor=(1.05, 1), loc='best')
         plt.tight_layout()
-
-    def plot_predictions_velocity_ratio_test_wells(self, test_df):
-        test_wells = list(set(test_df["well_name"]))
-
-        fig, axs = plt.subplots(1, len(test_wells), figsize=(15, 10), sharey=False)
-        for ic, well in enumerate(test_wells):
-            test_data_well = test_df[test_df["well_name"] == well]
-            acs_test = test_data_well["ACS"]
-            x_test = test_data_well[explanatory_variables]
-            depths = x_test["DEPTH"]
-            ac_test = x_test["AC"]
-
-            ratio_test = np.divide(np.array(ac_test), np.array(acs_test))
-
-            x_test = torch.tensor(x_test.values, dtype=torch.float32)
-
-            if self.heteroscedastic:
-                predictions, _ = self.forward(x_test)
-                acs_predictions = predictions.detach().numpy()
-            else:
-                acs_predictions = self.forward(x_test).detach().numpy()
-
-            ratio_predictions = np.divide(np.array(ac_test), np.array(acs_predictions[:, 0]))
-
-            axs[ic].set_ylim(depths.values[-1], depths.values[0])
-            axs[ic].plot(ratio_test, depths, ".", label="True")
-            axs[ic].plot(ratio_predictions, depths, ".", label="Predictions")
-
-            axs[ic].set_title(well)
-            axs[ic].set_xlabel("AC/ACS")
-        axs[0].set_ylabel("Depths")
-        plt.legend(loc="best",bbox_to_anchor=(1.05, 1))
-        plt.tight_layout()
-
 
 
 if __name__ == "__main__":
@@ -459,17 +440,15 @@ if __name__ == "__main__":
     plt.plot(range(model.num_epochs), validation_loss, label="validation loss")
     plt.legend()
 
-    mse, mae, mape = model.evaluate_performance(test_loader)
+    mse, mae = model.evaluate_performance(test_loader)
     print("Performance on full test set: ")
     print("MSE: {:.5f}".format(mse))
     print("MAE: {:.5f}".format(mae))
-    print("MAPE: {:.5f}%".format(mape))
 
     # well-wise performance
     performance_dict = model.wellwise_performance(df_test)
 
     # plot predictions for all wells in test set
     model.plot_predictions_test_wells(df_test)
-    model.plot_predictions_velocity_ratio_test_wells(df_test)
 
     plt.show()

@@ -1,9 +1,7 @@
 import pandas as pd
-import numpy as np
 import os
 import time
 import torch.nn as nn
-from pickle import load
 from matplotlib import pyplot as plt
 from src.SGVB.bayesianlinear import BayesianLinear
 
@@ -41,12 +39,26 @@ class BayesianRegressorHomoscedastic(nn.Module):
 
     @property
     def accumulated_kl_div(self):
+        """
+        keeps track of the accumulated KL divergence across the layers in the network during training
+        :return: accumulated KL divergence
+        """
         return self.kl_loss.accumulated_kl_div
 
     def reset_kl_div(self):
+        """
+        resets the accumulated KL divergence
+        :return: None
+        """
         self.kl_loss.accumulated_kl_div = 0
 
     def forward(self, x):
+        """
+        Forward pass of the model, calculating output of the model
+
+        :param input: matrix of samples, dim = (num samples, num predictors)
+        :return: output of the neural network, dim = (1, num samples)
+        """
         x_ = self.bfc1(x)
         x_ = self.bn1(x_)
         x_ = self.relu(x_)
@@ -62,6 +74,13 @@ class BayesianRegressorHomoscedastic(nn.Module):
         return output
 
     def det_loss(self, y, y_pred):
+        """
+        Computes the ELBO loss by adding the KL divergence and the NLL
+
+        :param y: true response
+        :param y_pred: predicted response
+        :return: ELBO loss (scalar)
+        """
         neg_loglik = 0.5*len(y)*(np.log(2*np.pi) + self.log_var) + torch.div(torch.pow(y-y_pred, 2), 2*torch.exp(self.log_var)).sum()
 
         kl = self.accumulated_kl_div
@@ -69,6 +88,14 @@ class BayesianRegressorHomoscedastic(nn.Module):
         return neg_loglik + kl
 
     def train_model(self, train_loader, val_loader):
+        """
+        Train the model using the partial training set,i.e. excluding the validation set,
+        estimate the test loss during training using the validation set
+
+        :param train_loader: torch dataloader object for the training set, excluding the validation set
+        :param val_loader: torch dataloader object for the validation set
+        :return: tuple containig the training and validation loss for each epoch
+        """
         train_loss = []
         val_loss = []
         for epoch in range(self.num_epochs):
@@ -90,12 +117,25 @@ class BayesianRegressorHomoscedastic(nn.Module):
         return train_loss, val_loss
 
     def print_trainable_parameters(self):
+        """
+        Helper function that prints trainable parameters for debugging purposes
+        :return: None
+        """
         print("\nTrainable parameters:")
         for name, param in self.named_parameters():
             if param.requires_grad:
                 print(name)
 
     def evaluate_performance(self, test_loader, B=100):
+        """
+        Evaluate model performance on the full test set in terms of the following performance metrics
+        - MSE
+        - MAE
+
+        :param test_loader: torch dataloader object for the test set
+        :param B: number of stochastic forward passes
+        :return: tuple containing the performance metrics, (mse, mae)
+        """
         x_test, y_test = unpack_dataset(test_loader)
         mse, mae = [], []
         for _ in range(B):
@@ -118,6 +158,13 @@ class BayesianRegressorHomoscedastic(nn.Module):
         return mse_tuple, mae_tuple
 
     def aleatoric_epistemic_variance(self, test_loader, B=100):
+        """
+        Estimate epistemic, aleatoric and total predictive uncertainty
+
+        :param test_loader: torch dataloader object containing the test set
+        :param B: Number of stochastic forward passes
+        :return: mean predictions, epistemic variance, aleatoric variance, total predictive variance
+        """
         x_test, y_test = unpack_dataset(test_loader)
         predictions_B = np.zeros((B, len(y_test)))
         log_var_B = np.zeros(B)
@@ -169,7 +216,7 @@ if __name__ == "__main__":
     model = BayesianRegressorHomoscedastic(in_size=input_dim, hidden_size=hidden_dim, out_size=output_dim, n_batches=M, dropout_rate=dropout_rate)
 
     training_configuration = "sgvb_homoscedastic_dropout_"+str(model.dropout_rate)+"_lr_"+str(model.lr)+"_numepochs_"+str(model.num_epochs)+"_hiddenunits_"\
-                             +str(hidden_dim)+"_hiddenlayers_2"+"_batch_size_"+str(batch_size)
+                             +str(hidden_dim)+"_hiddenlayers_3"+"_batch_size_"+str(batch_size)
     training_configuration = training_configuration.replace(".", "")
     path_to_model = "./data/models/regression/"
     path_to_model += training_configuration + ".pt"

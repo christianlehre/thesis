@@ -85,6 +85,11 @@ if __name__ == "__main__":
 
 
     def significance_to_quantiles(alpha):
+        """
+        Converts probabilities (in [0,1]) to significance levels
+        :param alpha: list of probabilities
+        :return: list of corresponding significance levels
+        """
         return 1 - (1 - alpha) / 2
 
 
@@ -157,4 +162,4 @@ if __name__ == "__main__":
     else:
         plt.savefig("./../../Figures/{}/{}/Calibration/average_coverage.pdf".format(model_type.replace(" ", ""), title))
 
-    #plt.show()
+    plt.show()

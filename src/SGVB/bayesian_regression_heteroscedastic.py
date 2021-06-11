@@ -1,7 +1,7 @@
 import os
 import time
+import pandas as pd
 import torch.nn as nn
-from pickle import load
 from matplotlib import pyplot as plt
 from src.SGVB.bayesianlinear import BayesianLinear
 from src.dataloader.dataloader import Dataloader
@@ -35,6 +35,12 @@ class BayesianRegressor(nn.Module):
         self.optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
 
     def forward(self, x):
+        """
+        Forward pass of the model, calculating output of the model
+
+        :param input: matrix of samples, dim = (num samples, num predictors)
+        :return: tuple of prediction and log-variance of the multi-headed network (prediction, log_variance)
+        """
         x_ = self.bfc1(x)
         x_ = self.batchnorm1(x_)
         x_ = self.relu(x_)
@@ -51,6 +57,14 @@ class BayesianRegressor(nn.Module):
         return y_hat, log_var
 
     def det_loss(self, y, y_pred, log_var):
+        """
+        Computes the ELBO loss by adding the KL divergence and the NLL
+
+        :param y: true response
+        :param y_pred: predicted response
+        :param log_var: log-variance (aleatoric)
+        :return: ELBO loss (scalar)
+        """
         reconstruction_error = 0.5*len(y)*np.log(2*np.pi) + (torch.log(torch.sqrt(torch.exp(log_var)))).sum() + \
                                0.5*(torch.div(torch.pow(y-y_pred, 2), torch.exp(log_var))).sum()
         kl = self.accumulated_kl_div
@@ -59,12 +73,28 @@ class BayesianRegressor(nn.Module):
 
     @property
     def accumulated_kl_div(self):
+        """
+        keeps track of the accumulated KL divergence across the layers in the network during training
+        :return: accumulated KL divergence
+        """
         return self.kl_loss.accumulated_kl_div
 
     def reset_kl_div(self):
+        """
+        resets the accumulated KL divergence
+        :return: None
+        """
         self.kl_loss.accumulated_kl_div = 0
 
     def train_model(self, train_loader, val_loader):
+        """
+        Train the model using the partial training set,i.e. excluding the validation set,
+        estimate the test loss during training using the validation set
+
+        :param train_loader: torch dataloader object for the training set, excluding the validation set
+        :param val_loader: torch dataloader object for the validation set
+        :return: tuple containig the training and validation loss for each epoch
+        """
         train_loss = []
         val_loss = []
         for epoch in range(self.num_epochs):
@@ -77,10 +107,6 @@ class BayesianRegressor(nn.Module):
                 self.optimizer.step()
             train_loss.append(loss.item())
 
-            #print("\nChecking for finite gradients:")
-            #for name, param in model.named_parameters():
-            #    print(name, torch.isfinite(param.grad).all())
-
             for x_val, y_val in val_loader:
                 output_val, log_var_val = self.forward(x_val)
                 loss_val = self.det_loss(y_val, output_val, log_var_val)
@@ -90,12 +116,33 @@ class BayesianRegressor(nn.Module):
         return train_loss, val_loss
 
     def print_trainable_parameters(self):
+        """
+        Helper function that prints trainable parameters for debugging purposes
+        :return: None
+        """
         print("Trainable parameters: ")
         for name, param in self.named_parameters():
             if param.requires_grad:
                 print(name)
 
+    def check_finite_gradients(self):
+        """
+        Helper function that checks for finite gradients for debugging purposes
+        :return: None
+        """
+        for name, param in self.named_parameters():
+            print(name, torch.isfinite(param.grad).all())
+
     def evaluate_performance(self, test_loader, B=100):
+        """
+        Evaluate model performance on the full test set in terms of the following performance metrics
+        - MSE
+        - MAE
+
+        :param test_loader: torch dataloader object for the test set
+        :param B: number of stochastic forward passes
+        :return: tuple containing the performance metrics, (mse, mae)
+        """
         x_test, y_test = unpack_dataset(test_loader)
         mse, mae = [], []
         for _ in range(B):
@@ -118,6 +165,13 @@ class BayesianRegressor(nn.Module):
         return mse_tuple, mae_tuple
 
     def aleatoric_epistemic_variance(self, test_loader, B=100):
+        """
+        Estimate epistemic, aleatoric and total predictive uncertainty
+
+        :param test_loader: torch dataloader object containing the test set
+        :param B: Number of stochastic forward passes
+        :return: mean predictions, epistemic variance, aleatoric variance, total predictive variance
+        """
         x_test, y_test = unpack_dataset(test_loader)
         predictions_B = np.zeros((B, len(y_test)))
         log_vars_B = np.zeros_like(predictions_B)
@@ -168,7 +222,7 @@ if __name__ == "__main__":
     model = BayesianRegressor(in_size=input_dim, hidden_size=hidden_dim, out_size=output_dim, n_batches=M, dropout_rate=dropout_rate)
 
     training_conf = "sgvb_heteroscedastic_dropout_"+str(model.dropout_rate)+"_lr_"+str(model.lr)+"_numepochs_"+str(model.num_epochs)+"_hiddenunits_"\
-                    +str(hidden_dim)+"_hiddenlayers_2"+"_batch_size_"+str(batch_size)
+                    +str(hidden_dim)+"_hiddenlayers_3"+"_batch_size_"+str(batch_size)
     training_conf = training_conf.replace(".", "")
     path_to_model = "./data/models/regression/"
     path_to_model += training_conf + ".pt"
