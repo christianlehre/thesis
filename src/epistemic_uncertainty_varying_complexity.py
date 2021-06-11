@@ -25,8 +25,8 @@ from src.SGVB.bayesian_heteroscedastic_complex import BayesianRegressor as Heter
 
 def nested_dictionary(test_loader, input_dim, hidden_dim, output_dim, layers, M, dropout_rate, path_to_models):
     """
-    Creates a nested dictionary of the epistemic uncertainty for a range of model complexities for all the considered
-    model formulations. The outer keys are the complexities, while the inner keys are the different models.
+    Creates a nested dictionary of the epistemic uncertainty for a range of model complexities for both SGVB models.
+    The outer keys are the complexities, while the inner keys are the different models.
 
     :param test_loader: torch dataloader object
     :param input_dim: input dimension
