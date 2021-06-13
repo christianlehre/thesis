@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
     training_configuration +="dropout_"+str(model.dropout_rate)+"_lr_" + str(model.lr) + "_numepochs_" + str(
         model.num_epochs) + "_hiddenunits_" \
-                              + str(hidden_dim) + "_hiddenlayers_2" + "_batch_size_" + str(batch_size)
+                              + str(hidden_dim) + "_hiddenlayers_3" + "_batch_size_" + str(batch_size)
     training_configuration = training_configuration.replace(".", "")
     path_to_model = "./data/models/regression/"
     path_to_model += training_configuration + ".pt"
